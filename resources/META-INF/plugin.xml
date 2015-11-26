@@ -1,0 +1,35 @@
+<idea-plugin version="2">
+    <id>nl.bpeschier.koji</id>
+    <name>Kōji</name>
+    <version>0.1</version>
+    <vendor>bpeschier</vendor>
+
+    <description><![CDATA[
+      Play some epic original soundtracks while you code.
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="141.0"/>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <applicationConfigurable instance="koji.KojiConfigurable"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+    <application-components>
+        <component>
+            <implementation-class>koji.KojiComponent</implementation-class>
+        </component>
+    </application-components>
+
+</idea-plugin>
