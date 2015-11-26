@@ -9,9 +9,6 @@ public class Player {
     private Bitstream bitstream;
     private Decoder decoder;
     private AudioDevice audio;
-    private float currentPosition;
-
-    private boolean playing;
 
     private Listener listener;
 
@@ -30,13 +27,6 @@ public class Player {
         audio.open(decoder = new Decoder());
     }
 
-    public int getCurrentPosition() {
-        if (audio == null)
-            return 0;
-
-        return audio.getPosition();
-    }
-
     public boolean setGain(float newGain) {
         return audio != null && audio.setLineGain(newGain);
     }
@@ -48,7 +38,7 @@ public class Player {
     public void play(float ms) throws JavaLayerException {
 
         Header h;
-        playing = true;
+        boolean playing = true;
 
         // report to listener
         if (listener != null) {
@@ -118,7 +108,6 @@ public class Player {
             }
 
             bitstream.closeFrame();
-            currentPosition += h.ms_per_frame();
             return h;
         } catch (RuntimeException ex) {
             throw new JavaLayerException("Exception decoding audio frame", ex);
@@ -128,14 +117,13 @@ public class Player {
     protected Header skipFrame() throws JavaLayerException {
         Header h = bitstream.readFrame();
         bitstream.closeFrame();
-        currentPosition += h.ms_per_frame();
         return h;
     }
 
-    public void play(final float start, final float end) throws JavaLayerException {
+    public void skipTo(float ms) throws JavaLayerException {
         Header h;
         boolean done = false;
-        float offset = start;
+        float offset = ms;
         while (offset > 0 && !done) {
             h = skipFrame();
             done = h == null;
@@ -143,20 +131,12 @@ public class Player {
                 offset -= h.ms_per_frame();
             }
         }
-        play(end - start);
     }
 
     public void setListener(Listener listener) {
         this.listener = listener;
     }
 
-    public Listener getListener() {
-        return listener;
-    }
-
-    /**
-     * closes the player and notifies <code>Listener</code>
-     */
     public void stop() {
         listener.playbackFinished(this);
         close();
@@ -164,10 +144,6 @@ public class Player {
 
     public void fadeOut() {
         stop();
-    }
-
-    public boolean isPlaying() {
-        return playing;
     }
 
     public interface Listener {

@@ -9,8 +9,7 @@ public class Queue implements Player.Listener {
 
     private final LinkedList<AudioFile> queue = new LinkedList<>();
 
-    private Player currentPlayer;
-    private Player nextPlayer;
+    private Player player;
     private AudioFile current;
 
 
@@ -21,12 +20,9 @@ public class Queue implements Player.Listener {
         synchronized (queue) {
             queue.add(file);
         }
-        if (queue.size() == 1 && currentPlayer == null) {
-            try {
-                next(false);
-            } catch (JavaLayerException e) {
-                e.printStackTrace();
-            }
+        if (queue.size() == 1 && player == null) {
+            System.out.println("QUEUE");
+            next(false);
         }
     }
 
@@ -34,22 +30,20 @@ public class Queue implements Player.Listener {
         synchronized (queue) {
             queue.add(file);
         }
-        if (queue.size() == 1 && currentPlayer == null) {
-            try {
-                start();
-            } catch (JavaLayerException e) {
-                e.printStackTrace();
-            }
-        } else if (currentPlayer != null) {
-            currentPlayer.fadeOut();
+        if (queue.size() == 1 && player == null) {
+            System.out.println("PLAY");
+            start();
+        } else if (player != null) {
+            System.out.println("FADE");
+            player.fadeOut();
         }
     }
 
-    private void start() throws JavaLayerException {
+    private void start() {
         next(false);
     }
 
-    private void next(boolean continuing) throws JavaLayerException {
+    private void next(boolean continuing) {
         AudioFile nextFile = current;
 
         System.out.println("Current: " + current + ", queue: " + queue);
@@ -60,7 +54,7 @@ public class Queue implements Player.Listener {
             }
         } else if (nextFile != null && !nextFile.isRepeatable()) {
             current = null;
-            currentPlayer = null;
+            player = null;
             nextFile = null;
         }
 
@@ -69,43 +63,30 @@ public class Queue implements Player.Listener {
         if (nextFile != null) {
             boolean same = current == nextFile;
             current = nextFile;
-            currentPlayer = new Player(current.getInputStream());
-            currentPlayer.setListener(this);
-
-            Runnable runnable = new Runnable() {
+            try {
+                player = new Player(current.getInputStream());
+            } catch (JavaLayerException e) {
+                e.printStackTrace();
+            }
+            player.setListener(Queue.this);
+            new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        currentPlayer.play();
+
+                        if (continuing && same && current.isRepeatable() && current.getRepeatRange() != null) {
+                            player.skipTo(current.getRepeatRange().getFrom());
+                            player.play(current.getRepeatRange().getTo() - current.getRepeatRange().getFrom());
+                        } else if (!same && current.isRepeatable() && current.getRepeatRange() != null) {
+                            player.play(current.getRepeatRange().getTo());
+                        } else {
+                            player.play();
+                        }
                     } catch (JavaLayerException e) {
                         e.printStackTrace();
                     }
                 }
-            };
-            if (continuing && same && current.isRepeatable()) {
-                runnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            currentPlayer.play(current.getRepeatRange().getFrom(), current.getRepeatRange().getTo());
-                        } catch (JavaLayerException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                };
-            } else if (continuing && !same && current.isRepeatable()) {
-                runnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            currentPlayer.play(0, current.getRepeatRange().getTo());
-                        } catch (JavaLayerException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                };
-            }
-            new Thread(runnable).start();
+            }).start();
         }
 
     }
@@ -117,10 +98,7 @@ public class Queue implements Player.Listener {
 
     @Override
     public void playbackFinished(Player player) {
-        try {
-            next(true);
-        } catch (JavaLayerException e) {
-            e.printStackTrace();
-        }
+        System.out.println("FINISHED");
+        next(true);
     }
 }
