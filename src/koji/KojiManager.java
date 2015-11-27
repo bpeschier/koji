@@ -75,6 +75,14 @@ public class KojiManager implements KojiListener {
             case PROJECT_SELECT:
                 queue.playBackground(pack.getMenu());
                 break;
+            case EDITOR:
+                queue.resumeBackground();
+                queue.stopForeground();
+                break;
+            case PLUGINS:
+                queue.pauseBackground();
+                queue.playForeground(pack.getPlugins());
+                break;
         }
 
     }

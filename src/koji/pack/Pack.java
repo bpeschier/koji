@@ -10,6 +10,8 @@ public interface Pack {
 
     AudioFile getMenu();
 
+    AudioFile getPlugins();
+
     Theme getCurrentTheme();
 
 }

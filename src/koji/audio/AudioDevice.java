@@ -42,6 +42,20 @@ public class AudioDevice extends AudioDeviceBase implements Runnable {
         currDB = targetDB;  // now sound is at this volume level
     }
 
+    public void setVolume(double value) {
+        // value is between 0 and 1
+        value = (value <= 0.0) ? 0.0001 : ((value > 1.0) ? 1.0 : value);
+        targetDB = (float) (Math.log(value) / Math.log(10.0) * 20.0);
+        if (source != null) {
+            try {
+                FloatControl gainControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
+                gainControl.setValue(targetDB);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
     public void shiftVolumeTo(double value) {
         // value is between 0 and 1
         value = (value <= 0.0) ? 0.0001 : ((value > 1.0) ? 1.0 : value);
@@ -114,6 +128,10 @@ public class AudioDevice extends AudioDeviceBase implements Runnable {
     protected void writeImpl(short[] samples, int offs, int len) throws JavaLayerException {
         if (this.source == null) {
             this.createSource();
+            if (targetDB != 1F) {
+                FloatControl gainControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
+                gainControl.setValue(targetDB);
+            }
         }
 
         byte[] b = this.toByteArray(samples, offs, len);

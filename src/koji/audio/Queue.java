@@ -112,6 +112,7 @@ public class Queue implements Player.Listener {
 
     public void playForeground(AudioFile audioFile) {
         if (playerQueues.get(foregroundPlayer).peek() != audioFile) {
+            foregroundPlayer.fadeIn();
             backgroundPlayer.fadeOut(false);
             play(foregroundPlayer, audioFile);
         }
@@ -123,6 +124,24 @@ public class Queue implements Player.Listener {
         } catch (JavaLayerException e) {
             e.printStackTrace();
         }
+    }
+
+    public void pauseBackground() {
+        backgroundPlayer.fadeOut(false);
+    }
+
+    public void resumeBackground() {
+        backgroundPlayer.fadeIn();
+    }
+
+    public void stopForeground() {
+        LinkedList<AudioFile> queue = playerQueues.get(foregroundPlayer);
+        if (queue != null) {
+            synchronized (playerQueues) {
+                queue.clear();
+            }
+        }
+        foregroundPlayer.fadeOut(true);
     }
 
     private void stop(Player player) {

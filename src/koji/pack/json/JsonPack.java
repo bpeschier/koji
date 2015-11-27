@@ -21,6 +21,7 @@ public class JsonPack implements Pack {
     List<Theme> themes;
     AudioFile exit;
     AudioFile menu;
+    AudioFile plugins;
 
     public static Pack load(URL url) {
         try {
@@ -51,6 +52,11 @@ public class JsonPack implements Pack {
     @Override
     public AudioFile getMenu() {
         return menu;
+    }
+
+    @Override
+    public AudioFile getPlugins() {
+        return plugins;
     }
 
     @Override

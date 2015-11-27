@@ -21,6 +21,7 @@ public class Player {
 
     private boolean playing = false;
     private float left = 0;
+    private boolean fadeout = false;
 
 
     private Listener listener;
@@ -60,6 +61,7 @@ public class Player {
     }
 
     public void play(InputStream stream, float from, float to) throws JavaLayerException {
+        fadeout = false;
         Bitstream bitstream = new Bitstream(stream);
         if (from > 0) {
             skipStreamTo(bitstream, from);
@@ -108,6 +110,9 @@ public class Player {
             Header h;
             audio = new AudioDevice();
             audio.open(decoder = new Decoder());
+            if (fadeout) {
+                audio.setVolume(0);
+            }
 
             Iterator<Map.Entry<Bitstream, Float>> entryIterator = queue.entrySet().iterator();
             Map.Entry<Bitstream, Float> entry = entryIterator.next();
@@ -248,6 +253,7 @@ public class Player {
     }
 
     public void fadeOut(boolean stop) {
+        fadeout = true;
         if (stop) {
             synchronized (queue) {
                 queue.clear();
@@ -260,6 +266,7 @@ public class Player {
     }
 
     public void fadeIn() {
+        fadeout = false;
         if (audio != null) {
             audio.shiftVolumeTo(1);
         }
