@@ -100,7 +100,7 @@ public class ApplicationListener {
                         return;
                     }
                     Container parent = comp.getParent();
-                    while (parent.getParent() != null) {
+                    while (parent != null && parent.getParent() != null) {
                         parent = parent.getParent();
                         if (parent.getClass().getName().equals("com.intellij.openapi.options.newEditor.SettingsEditor")) {
                             listener.windowFocused(KojiManager.Window.SETTINGS);

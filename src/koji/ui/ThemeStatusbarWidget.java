@@ -31,6 +31,7 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
         StatusBarWidget.Multiframe, ThemeChangeListener {
 
     KojiManager manager;
+    DefaultActionGroup popupGroup;
 
     public ThemeStatusbarWidget(@NotNull Project project) {
         super(project);
@@ -68,16 +69,22 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
             return null;
         }
 
-        DefaultActionGroup popupGroup = new DefaultActionGroup(null, false);
-
-        for (Theme t : manager.getProjectPack(project).getThemes()) {
-            if (t != theme) {
-                popupGroup.add(new SelectThemeAction(project, t));
-            }
-        }
+        updatePopupGroup(project, theme);
 
         return new PopupFactoryImpl.ActionGroupPopup("Themes", popupGroup, SimpleDataContext.getProjectContext(project), false, false, false, true, null, -1,
                 null, null);
+
+    }
+
+    private void updatePopupGroup(Project project, Theme theme) {
+
+        popupGroup = new DefaultActionGroup(null, false);
+
+        for (Theme t : manager.getProjectPack(project).getThemes()) {
+            if (!t.getId().equals(theme.getId())) {
+                popupGroup.add(new SelectThemeAction(project, t));
+            }
+        }
 
     }
 
@@ -111,6 +118,7 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
     }
 
     private void update() {
+        updatePopupGroup(getProject(), manager.getCurrentProjectTheme(getProject()));
         myStatusBar.updateWidget(ID());
     }
 
