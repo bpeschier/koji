@@ -10,8 +10,11 @@ import java.net.URL;
 
 public class JsonAudioFile implements AudioFile {
 
+    @SuppressWarnings("unused")
     private URL path;
+    @SuppressWarnings("unused")
     private Range<Float> repeat;
+    @SuppressWarnings("unused")
     private boolean repeatable;
 
     @Override
@@ -26,6 +29,9 @@ public class JsonAudioFile implements AudioFile {
 
     @Override
     public Range<Float> getRepeatRange() {
+        if (repeat == null && repeatable) {
+            return new Range<Float>(0f, Float.MAX_VALUE);
+        }
         return repeat;
     }
 

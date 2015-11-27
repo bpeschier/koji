@@ -6,19 +6,50 @@ import javazoom.jl.player.AudioDeviceBase;
 
 import javax.sound.sampled.*;
 
-public class AudioDevice extends AudioDeviceBase {
+public class AudioDevice extends AudioDeviceBase implements Runnable {
     private SourceDataLine source = null;
     private AudioFormat fmt = null;
     private byte[] byteBuf = new byte[4096];
 
-    public boolean setLineGain(float gain) {
-        if (source != null) {
-            FloatControl volControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
-            float newGain = Math.min(Math.max(gain, volControl.getMinimum()), volControl.getMaximum());
-            volControl.setValue(newGain);
-            return true;
+    float currDB = 0F;
+    float targetDB = 0F;
+    float fadePerStep = 0.2F;   // .1 works for applets, 1 is okay for apps
+    boolean fading = false;
+
+    public void run() {
+        FloatControl gainControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
+        fading = true;   // prevent running twice on same sound
+        if (currDB > targetDB) {
+            while (currDB > targetDB) {
+                currDB -= fadePerStep;
+                gainControl.setValue(currDB);
+                try {
+                    Thread.sleep(10);
+                } catch (Exception ignored) {
+                }
+            }
+        } else if (currDB < targetDB) {
+            while (currDB < targetDB) {
+                currDB += fadePerStep;
+                gainControl.setValue(currDB);
+                try {
+                    Thread.sleep(10);
+                } catch (Exception ignored) {
+                }
+            }
         }
-        return false;
+        fading = false;
+        currDB = targetDB;  // now sound is at this volume level
+    }
+
+    public void shiftVolumeTo(double value) {
+        // value is between 0 and 1
+        value = (value <= 0.0) ? 0.0001 : ((value > 1.0) ? 1.0 : value);
+        targetDB = (float) (Math.log(value) / Math.log(10.0) * 20.0);
+        if (!fading) {
+            Thread t = new Thread(this);  // start a thread to fade volume
+            t.start();  // calls run() below
+        }
     }
 
     protected void setAudioFormat(AudioFormat fmt0) {
@@ -36,8 +67,7 @@ public class AudioDevice extends AudioDeviceBase {
 
     protected DataLine.Info getSourceLineInfo() {
         AudioFormat fmt = this.getAudioFormat();
-        DataLine.Info info = new DataLine.Info(SourceDataLine.class, fmt);
-        return info;
+        return new DataLine.Info(SourceDataLine.class, fmt);
     }
 
     public void open(AudioFormat fmt) throws JavaLayerException {
@@ -46,7 +76,6 @@ public class AudioDevice extends AudioDeviceBase {
             this.openImpl();
             this.setOpen(true);
         }
-
     }
 
     protected void openImpl() throws JavaLayerException {

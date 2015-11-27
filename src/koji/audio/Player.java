@@ -18,9 +18,10 @@ public class Player {
     private Decoder decoder;
     private AudioDevice audio;
     private boolean blocking = false;
-    private Thread thread = null;
 
     private boolean playing = false;
+    private float left = 0;
+
 
     private Listener listener;
 
@@ -32,7 +33,7 @@ public class Player {
         this.blocking = blocking;
 
         if (!blocking) {
-            this.thread = new Thread(new Runnable() {
+            new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -41,8 +42,7 @@ public class Player {
                         e.printStackTrace();
                     }
                 }
-            });
-            this.thread.start();
+            }).start();
         }
 
     }
@@ -56,7 +56,7 @@ public class Player {
         if (from > 0) {
             skipStreamTo(bitstream, from);
         }
-        queue(bitstream, to);
+        queue(bitstream, to - from);
     }
 
     public void play(InputStream stream, float from, float to) throws JavaLayerException {
@@ -66,7 +66,7 @@ public class Player {
         }
         synchronized (queue) {
             queue.clear();
-            queue(bitstream, to);
+            queue(bitstream, to - from);
         }
     }
 
@@ -121,17 +121,17 @@ public class Player {
             playing = true;
 
             Bitstream bitstream = entry.getKey();
-            float ms = entry.getValue();
+            left = entry.getValue();
 
             // report to listener
             if (listener != null) {
                 listener.playbackStarted(this);
             }
 
-            while (ms > 0 && playing) {
+            while (left > 0 && playing) {
                 h = playFrame(bitstream);
                 if (h != null) {
-                    ms -= h.ms_per_frame();
+                    left -= h.ms_per_frame();
                 }
                 playing = playing && h != null;
             }
@@ -154,9 +154,11 @@ public class Player {
             }
 
             if (!blocking && queue.size() == 0) {
+                listener.queueDone(this);
                 this.waitForQueue();
             }
         }
+        listener.queueDone(this);
     }
 
     private void waitForQueue() {
@@ -245,15 +247,31 @@ public class Player {
         playing = false;
     }
 
-    public void fadeOut() {
-        stop();
+    public void fadeOut(boolean stop) {
+        if (stop) {
+            synchronized (queue) {
+                queue.clear();
+            }
+            left = 1000;
+        }
+        if (audio != null) {
+            audio.shiftVolumeTo(0);
+        }
     }
+
+    public void fadeIn() {
+        if (audio != null) {
+            audio.shiftVolumeTo(1);
+        }
+    }
+
 
     public interface Listener {
         void playbackStarted(Player player);
 
         void playbackFinished(Player player);
 
+        void queueDone(Player player);
     }
 
 }

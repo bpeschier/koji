@@ -2,11 +2,8 @@ package koji.pack.json.deserializers;
 
 import com.google.gson.*;
 import com.intellij.util.Range;
-import koji.pack.Theme;
-import koji.pack.json.JsonTheme;
 
 import java.lang.reflect.Type;
-import java.net.URL;
 
 public class RangeDeserializer implements JsonDeserializer<Range<Float>> {
 
