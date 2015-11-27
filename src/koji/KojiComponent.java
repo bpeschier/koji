@@ -13,13 +13,13 @@ public class KojiComponent implements ApplicationComponent {
 
     @Override
     public void initComponent() {
-        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         PropertiesComponent.getInstance().setValues("kojiPackPaths", new String[]{
                 "file:///Users/bpeschier/Downloads/koji/WindWaker.koji/"
         });
-        packsManager = new PacksManager(this);
-        manager = new KojiManager(packsManager);
+        packsManager = PacksManager.getInstance();
+        manager = KojiManager.getInstance();
         ApplicationListener.install(manager);
+
     }
 
     @Override

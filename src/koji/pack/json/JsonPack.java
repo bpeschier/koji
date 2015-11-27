@@ -1,6 +1,7 @@
 package koji.pack.json;
 
 import com.google.gson.GsonBuilder;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.Range;
 import koji.pack.AudioFile;
 import koji.pack.Pack;
@@ -10,6 +11,7 @@ import koji.pack.json.deserializers.PackDeserializer;
 import koji.pack.json.deserializers.RangeDeserializer;
 import koji.pack.json.deserializers.ThemeDeserializer;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
@@ -18,6 +20,8 @@ import java.util.List;
 
 public class JsonPack implements Pack {
 
+    URL icon;
+    String name;
     List<Theme> themes;
     AudioFile exit;
     AudioFile menu;
@@ -40,8 +44,28 @@ public class JsonPack implements Pack {
     }
 
     @Override
+    public String getId() {
+        return name;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
     public List<Theme> getThemes() {
         return themes;
+    }
+
+    @Override
+    public Theme getTheme(String themeId) {
+        for (Theme t : getThemes()) {
+            if (t.getId().equals(themeId)) {
+                return t;
+            }
+        }
+        return getThemes().get(0);
     }
 
     @Override
@@ -59,8 +83,8 @@ public class JsonPack implements Pack {
         return plugins;
     }
 
-    @Override
-    public Theme getCurrentTheme() {
-        return getThemes().get(0);
+    public Icon getIcon() {
+        return IconLoader.findIcon(icon);
     }
+
 }

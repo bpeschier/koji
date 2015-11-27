@@ -24,6 +24,10 @@
 
     <actions>
         <!-- Add your actions here -->
+        <action id="Koji.SelectTheme" class="koji.actions.OpenThemePopup"
+                text="Select a theme">
+            <keyboard-shortcut first-keystroke="ctrl meta T" keymap="$default"/>
+        </action>
     </actions>
 
     <application-components>
@@ -31,5 +35,12 @@
             <implementation-class>koji.KojiComponent</implementation-class>
         </component>
     </application-components>
+
+    <project-components>
+        <component>
+            <implementation-class>koji.KojiProjectComponent</implementation-class>
+        </component>
+    </project-components>
+
 
 </idea-plugin>

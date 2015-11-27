@@ -14,12 +14,14 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.project.ProjectManagerAdapter;
 import com.intellij.openapi.wm.IdeFrame;
+import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.WindowManager;
 import com.intellij.openapi.wm.WindowManagerListener;
 import com.intellij.openapi.wm.impl.IdeFrameImpl;
 import com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame;
 import koji.KojiListener;
 import koji.KojiManager;
+import koji.ui.ThemeStatusbarWidget;
 
 import javax.swing.*;
 import java.awt.*;

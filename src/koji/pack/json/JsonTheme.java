@@ -12,6 +12,12 @@ public class JsonTheme implements Theme {
 
     @NotNull
     @Override
+    public String getId() {
+        return name;
+    }
+
+    @NotNull
+    @Override
     public String getName() {
         return name;
     }

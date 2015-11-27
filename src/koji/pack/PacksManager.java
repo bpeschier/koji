@@ -11,10 +11,16 @@ import java.util.List;
 
 public class PacksManager {
 
-    private KojiComponent component;
+    private static PacksManager instance;
 
-    public PacksManager(KojiComponent component) {
-        this.component = component;
+    private PacksManager() {
+    }
+
+    public static PacksManager getInstance() {
+        if (instance == null) {
+            instance = new PacksManager();
+        }
+        return instance;
     }
 
     public List<Pack> getPacks() {
@@ -29,5 +35,16 @@ public class PacksManager {
         }
 
         return packs;
+    }
+
+    public Pack getPack(String packId) {
+        List<Pack> packs = getPacks();
+        for (Pack p : packs) {
+            if (p.getId().equals(packId)) {
+                return p;
+            }
+        }
+        // TODO: 0? Really?
+        return packs.get(0);
     }
 }

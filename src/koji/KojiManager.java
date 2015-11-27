@@ -1,27 +1,37 @@
 package koji;
 
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.messages.Topic;
 import koji.audio.Queue;
+import koji.listeners.ThemeChangeListener;
 import koji.pack.Pack;
 import koji.pack.PacksManager;
 import koji.pack.Theme;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class KojiManager implements KojiListener {
+
+    public static Topic<ThemeChangeListener> THEME_CHANGE = Topic.create("GitRepository change", ThemeChangeListener.class);
 
     private boolean enabled = true;
     private Pack pack;
     private Queue queue;
-    private Map<Project, Pack> projectPacks = new HashMap<Project, Pack>();
     private PacksManager packsManager;
 
-    public KojiManager(PacksManager manager) {
+    private static KojiManager instance;
+
+    private KojiManager() {
         queue = new Queue();
-        packsManager = manager;
+        packsManager = PacksManager.getInstance();
 
         pack = packsManager.getPacks().get(0);
+    }
+
+    public static KojiManager getInstance() {
+        if (instance == null) {
+            instance = new KojiManager();
+        }
+        return instance;
     }
 
     public void usePack(Pack pack) {
@@ -30,23 +40,37 @@ public class KojiManager implements KojiListener {
         update();
     }
 
+    public void selectedTheme(Project project, Theme theme) {
+        queue.playTheme(theme);
+        PropertiesComponent.getInstance(project).setValue("kojiCurrentTheme", theme.getName());
+        project.getMessageBus().syncPublisher(KojiManager.THEME_CHANGE).themeChanged(theme);
+    }
+
     private void update() {
 
     }
 
-    private Pack getProjectPack(Project project) {
-        Pack p = projectPacks.get(project);
-        return (p == null) ? pack : p;
+
+    public Pack getProjectPack(Project project) {
+        String packId = PropertiesComponent.getInstance(project).getValue("kojiPack");
+        return packsManager.getPack(packId);
     }
+
+    public Theme getCurrentProjectTheme(Project project) {
+        String themeId = PropertiesComponent.getInstance(project).getValue("kojiCurrentTheme");
+        return getProjectPack(project).getTheme(themeId);
+    }
+
+    //
+    // Events
+    //
 
     @Override
     public void projectOpened(Project project) {
         if (!enabled) {
             return;
         }
-        Pack pack = getProjectPack(project);
-        Theme theme = pack.getCurrentTheme();
-        queue.playTheme(theme);
+        queue.playTheme(getCurrentProjectTheme(project));
     }
 
     @Override
