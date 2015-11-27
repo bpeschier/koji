@@ -6,12 +6,16 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * TODO:
  * - blocking
  */
 public class Player {
+
+    private static final Logger logger = Logger.getLogger(Player.class.getName());
+
 
     private final Map<Bitstream, Float> queue = new LinkedHashMap<Bitstream, Float>();
 
@@ -95,7 +99,7 @@ public class Player {
             play();
         } else {
             synchronized (queue) {
-                System.out.println("RESUMING");
+                logger.fine("Resuming playback");
                 queue.notify();
             }
         }
@@ -116,13 +120,12 @@ public class Player {
 
             Iterator<Map.Entry<Bitstream, Float>> entryIterator = queue.entrySet().iterator();
             Map.Entry<Bitstream, Float> entry = entryIterator.next();
-            System.out.println("NEXT: " + entry);
 
             synchronized (queue) {
                 entryIterator.remove();
             }
 
-            System.out.println("PLAYING");
+            logger.fine("Starting playback");
             playing = true;
 
             Bitstream bitstream = entry.getKey();
@@ -171,9 +174,7 @@ public class Player {
     private void waitForQueue() {
         try {
             synchronized (queue) {
-                System.out.println("WAITING?");
                 queue.wait();
-                System.out.println("WAITING!");
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

@@ -17,7 +17,6 @@ public class SelectThemeAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        System.out.println("Selected " + theme.getName());
         KojiManager.getInstance().selectedTheme(anActionEvent.getProject(), theme);
     }
 }

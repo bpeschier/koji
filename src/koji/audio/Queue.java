@@ -9,8 +9,11 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.logging.Logger;
 
 public class Queue implements Player.Listener {
+
+    private static final Logger logger = Logger.getLogger(Queue.class.getName());
 
     private Player backgroundPlayer;
     private Player foregroundPlayer;
@@ -50,10 +53,10 @@ public class Queue implements Player.Listener {
 
         try {
             if (audioFile.isRepeatable()) {
-                System.out.println("Play repeat start to " + audioFile.getRepeatRange().getTo());
+                logger.fine("Queueing direct playback of repeatable audio");
                 player.play(audioFile.getInputStream(), 0, audioFile.getRepeatRange().getTo());
             } else {
-                System.out.println("Play normal");
+                logger.fine("Queueing direct playback of non-repeatable audio");
                 player.play(audioFile.getInputStream(), 0, Float.MAX_VALUE);
             }
         } catch (JavaLayerException e) {
@@ -78,14 +81,14 @@ public class Queue implements Player.Listener {
 
         try {
             if (!audioFile.isRepeatable()) {
-                System.out.println("Queue normal");
+                logger.fine("Queueing playback of non-repeatable audio");
                 player.queue(audioFile.getInputStream(), 0, Float.MAX_VALUE);
             } else if (repeat && audioFile.isRepeatable()) {
-                System.out.println("Queue full repeat");
+                logger.fine("Queueing playback of repeating audio (start)");
                 Range<Float> range = audioFile.getRepeatRange();
                 player.queue(audioFile.getInputStream(), range.getFrom(), range.getTo());
             } else if (audioFile.isRepeatable()) {
-                System.out.println("Queue repeat start");
+                logger.fine("Queueing playback of repeating audio (repeat)");
                 player.queue(audioFile.getInputStream(), 0, audioFile.getRepeatRange().getTo());
             }
         } catch (JavaLayerException e) {
@@ -179,7 +182,6 @@ public class Queue implements Player.Listener {
 
     @Override
     public void playbackFinished(Player player) {
-        System.out.println("FINISHED");
         checkQueue(player);
     }
 

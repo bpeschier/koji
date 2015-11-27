@@ -9,7 +9,6 @@ import koji.ui.ThemeStatusbarWidget;
 public class OpenThemePopupAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
-        System.out.println("POPUP-TIME!");
         Project currentProject = e.getProject();
 
         ThemeStatusbarWidget widget = ThemeStatusbarWidget.findWidgetInstance(currentProject);

@@ -1,14 +1,10 @@
 package koji.ui;
 
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ListPopup;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.WindowManager;
@@ -19,14 +15,12 @@ import koji.KojiManager;
 import koji.actions.SelectThemeAction;
 import koji.listeners.EnabledChangeListener;
 import koji.listeners.ThemeChangeListener;
-import koji.pack.Pack;
 import koji.pack.Theme;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.event.MouseEvent;
-
 
 
 public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBarWidget.MultipleTextValuesPresentation,
@@ -62,7 +56,6 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
     @Nullable
     @Override
     public ListPopup getPopupStep() {
-        System.out.println("???");
         Project project = getProject();
         if (project == null) {
             return null;
