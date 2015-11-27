@@ -4,6 +4,7 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.Topic;
 import koji.audio.Queue;
+import koji.listeners.EnabledChangeListener;
 import koji.listeners.ThemeChangeListener;
 import koji.pack.Pack;
 import koji.pack.PacksManager;
@@ -11,7 +12,8 @@ import koji.pack.Theme;
 
 public class KojiManager implements KojiListener {
 
-    public static Topic<ThemeChangeListener> THEME_CHANGE = Topic.create("GitRepository change", ThemeChangeListener.class);
+    public static Topic<ThemeChangeListener> THEME_CHANGE = Topic.create("Theme change", ThemeChangeListener.class);
+    public static Topic<EnabledChangeListener> ENABLE_CHANGE = Topic.create("Enabled change", EnabledChangeListener.class);
 
     private boolean enabled = true;
     private Pack pack;
@@ -109,6 +111,22 @@ public class KojiManager implements KojiListener {
                 break;
         }
 
+    }
+
+    public boolean isPaused() {
+        return !enabled;
+    }
+
+    public void resume(Project project) {
+        enabled = true;
+        queue.playTheme(getCurrentProjectTheme(project));
+        project.getMessageBus().syncPublisher(KojiManager.ENABLE_CHANGE).isKojiEnabled(true);
+    }
+
+    public void pause(Project project) {
+        enabled = false;
+        queue.stop();
+        project.getMessageBus().syncPublisher(KojiManager.ENABLE_CHANGE).isKojiEnabled(false);
     }
 
     @Override

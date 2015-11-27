@@ -6,7 +6,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.WindowManager;
 import koji.ui.ThemeStatusbarWidget;
 
-public class OpenThemePopup extends AnAction {
+public class OpenThemePopupAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         System.out.println("POPUP-TIME!");

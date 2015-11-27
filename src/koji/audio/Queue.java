@@ -165,6 +165,12 @@ public class Queue implements Player.Listener {
         }
     }
 
+    public void stop() {
+        stop(backgroundPlayer);
+        stop(foregroundPlayer);
+        stop(instantPlayer);
+    }
+
 
     @Override
     public void playbackStarted(Player player) {

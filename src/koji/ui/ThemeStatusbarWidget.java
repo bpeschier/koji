@@ -17,6 +17,7 @@ import com.intellij.ui.popup.PopupFactoryImpl;
 import com.intellij.util.Consumer;
 import koji.KojiManager;
 import koji.actions.SelectThemeAction;
+import koji.listeners.EnabledChangeListener;
 import koji.listeners.ThemeChangeListener;
 import koji.pack.Pack;
 import koji.pack.Theme;
@@ -27,8 +28,9 @@ import javax.swing.*;
 import java.awt.event.MouseEvent;
 
 
+
 public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBarWidget.MultipleTextValuesPresentation,
-        StatusBarWidget.Multiframe, ThemeChangeListener {
+        StatusBarWidget.Multiframe, ThemeChangeListener, EnabledChangeListener {
 
     KojiManager manager;
     DefaultActionGroup popupGroup;
@@ -37,6 +39,7 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
         super(project);
         manager = KojiManager.getInstance();
         project.getMessageBus().connect().subscribe(KojiManager.THEME_CHANGE, this);
+        project.getMessageBus().connect().subscribe(KojiManager.ENABLE_CHANGE, this);
     }
 
     @NotNull
@@ -82,7 +85,7 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
 
         for (Theme t : manager.getProjectPack(project).getThemes()) {
             if (!t.getId().equals(theme.getId())) {
-                popupGroup.add(new SelectThemeAction(project, t));
+                popupGroup.add(new SelectThemeAction(t));
             }
         }
 
@@ -91,7 +94,8 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
     @Nullable
     @Override
     public String getSelectedValue() {
-        return manager.getCurrentProjectTheme(getProject()).getName();
+        String theme = manager.getCurrentProjectTheme(getProject()).getName();
+        return (manager.isPaused()) ? theme + " (Paused)" : theme;
     }
 
     @NotNull
@@ -166,4 +170,13 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
             popupStep.showInCenterOf(frame);
     }
 
+    @Override
+    public void isKojiEnabled(boolean isEnabled) {
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                update();
+            }
+        });
+    }
 }

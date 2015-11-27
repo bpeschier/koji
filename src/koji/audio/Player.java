@@ -163,7 +163,9 @@ public class Player {
                 this.waitForQueue();
             }
         }
-        listener.queueDone(this);
+        if (listener != null) {
+            listener.queueDone(this);
+        }
     }
 
     private void waitForQueue() {
