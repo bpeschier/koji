@@ -19,7 +19,7 @@ public class PacksManager {
 
     public List<Pack> getPacks() {
         String[] paths = PropertiesComponent.getInstance().getValues("kojiPackPaths");
-        List<Pack> packs = new ArrayList<>(paths.length);
+        List<Pack> packs = new ArrayList<Pack>(paths.length);
         for (String packLocation : paths) {
             try {
                 packs.add(JsonPack.load(new URL(packLocation)));

@@ -2,7 +2,6 @@ package koji;
 
 import com.intellij.openapi.project.Project;
 import koji.audio.Queue;
-import koji.pack.AudioFile;
 import koji.pack.Pack;
 import koji.pack.PacksManager;
 import koji.pack.Theme;
@@ -15,7 +14,7 @@ public class KojiManager implements KojiListener {
     private boolean enabled = true;
     private Pack pack;
     private Queue queue;
-    private Map<Project, Pack> projectPacks = new HashMap<>();
+    private Map<Project, Pack> projectPacks = new HashMap<Project, Pack>();
     private PacksManager packsManager;
 
     public KojiManager(PacksManager manager) {
@@ -36,7 +35,8 @@ public class KojiManager implements KojiListener {
     }
 
     private Pack getProjectPack(Project project) {
-        return projectPacks.getOrDefault(project, pack);
+        Pack p = projectPacks.get(project);
+        return (p == null) ? pack : p;
     }
 
     @Override
@@ -46,12 +46,7 @@ public class KojiManager implements KojiListener {
         }
         Pack pack = getProjectPack(project);
         Theme theme = pack.getCurrentTheme();
-        if (theme.getIntro() != null) {
-            queue.play(theme.getIntro());
-            queue.queue(theme.getMain());
-        } else {
-            queue.play(theme.getMain());
-        }
+        queue.playTheme(theme);
     }
 
     @Override
@@ -78,7 +73,7 @@ public class KojiManager implements KojiListener {
 
         switch (window) {
             case PROJECT_SELECT:
-                queue.play(pack.getMenu());
+                queue.playBackground(pack.getMenu());
                 break;
         }
 
@@ -89,7 +84,7 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        queue.play(pack.getExit());
+        queue.playBlocking(pack.getExit());
     }
 
     public enum Window {

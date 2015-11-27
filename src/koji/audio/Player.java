@@ -3,63 +3,148 @@ package koji.audio;
 import javazoom.jl.decoder.*;
 
 import java.io.InputStream;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+/**
+ * TODO:
+ * - blocking
+ */
 public class Player {
 
-    private Bitstream bitstream;
+    private final Map<Bitstream, Float> queue = new LinkedHashMap<Bitstream, Float>();
+
     private Decoder decoder;
     private AudioDevice audio;
+    private boolean blocking = false;
+    private Thread thread = null;
+
+    private boolean playing = false;
 
     private Listener listener;
 
-    public Player(InputStream stream) throws JavaLayerException {
-        this(stream, null);
+    public Player() {
+        this(false);
     }
 
-    public Player(InputStream stream, AudioDevice device) throws JavaLayerException {
-        bitstream = new Bitstream(stream);
+    public Player(boolean blocking) {
+        this.blocking = blocking;
 
-        if (device != null) {
-            audio = device;
-        } else {
-            audio = new AudioDevice();
-        }
-        audio.open(decoder = new Decoder());
-    }
-
-    public boolean setGain(float newGain) {
-        return audio != null && audio.setLineGain(newGain);
-    }
-
-    public void play() throws JavaLayerException {
-        play(Float.MAX_VALUE);
-    }
-
-    public void play(float ms) throws JavaLayerException {
-
-        Header h;
-        boolean playing = true;
-
-        // report to listener
-        if (listener != null) {
-            listener.playbackStarted(this);
+        if (!blocking) {
+            this.thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        play();
+                    } catch (JavaLayerException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            this.thread.start();
         }
 
-        while (ms > 0 && playing) {
-            h = decodeFrame();
-            if (h != null) {
-                ms -= h.ms_per_frame();
+    }
+
+    public boolean isPlaying() {
+        return playing;
+    }
+
+    public void queue(InputStream stream, float from, float to) throws JavaLayerException {
+        Bitstream bitstream = new Bitstream(stream);
+        if (from > 0) {
+            skipStreamTo(bitstream, from);
+        }
+        queue(bitstream, to);
+    }
+
+    public void play(InputStream stream, float from, float to) throws JavaLayerException {
+        Bitstream bitstream = new Bitstream(stream);
+        if (from > 0) {
+            skipStreamTo(bitstream, from);
+        }
+        synchronized (queue) {
+            queue.clear();
+            queue(bitstream, to);
+        }
+    }
+
+    private void queue(Bitstream bitstream, float to) {
+        synchronized (queue) {
+            queue.put(bitstream, to);
+        }
+
+        if (!isPlaying()) {
+            try {
+                resume();
+            } catch (JavaLayerException e) {
+                e.printStackTrace();
             }
-            playing = h != null && ms > 0;
+        }
+    }
+
+    private void resume() throws JavaLayerException {
+        if (playing) {
+            return;
         }
 
-        if (!playing) {
+        if (blocking) {
+            play();
+        } else {
+            synchronized (queue) {
+                System.out.println("RESUMING");
+                queue.notify();
+            }
+        }
+    }
+
+    private void play() throws JavaLayerException {
+        if (!blocking && queue.size() == 0) {
+            this.waitForQueue();
+        }
+
+        while (queue.size() > 0) {
+            Header h;
+            audio = new AudioDevice();
+            audio.open(decoder = new Decoder());
+
+            Iterator<Map.Entry<Bitstream, Float>> entryIterator = queue.entrySet().iterator();
+            Map.Entry<Bitstream, Float> entry = entryIterator.next();
+            System.out.println("NEXT: " + entry);
+
+            synchronized (queue) {
+                entryIterator.remove();
+            }
+
+            System.out.println("PLAYING");
+            playing = true;
+
+            Bitstream bitstream = entry.getKey();
+            float ms = entry.getValue();
+
+            // report to listener
+            if (listener != null) {
+                listener.playbackStarted(this);
+            }
+
+            while (ms > 0 && playing) {
+                h = playFrame(bitstream);
+                if (h != null) {
+                    ms -= h.ms_per_frame();
+                }
+                playing = playing && h != null;
+            }
+
+            playing = false;
+
             // last frame, ensure all data flushed to the audio device.
             AudioDevice out = audio;
             if (out != null) {
                 out.flush();
                 synchronized (this) {
-                    close();
+                    closeStream(bitstream);
+                    audio.close();
                 }
 
                 // report to listener
@@ -67,25 +152,41 @@ public class Player {
                     listener.playbackFinished(this);
                 }
             }
-        }
-    }
 
-    public synchronized void close() {
-        AudioDevice out = audio;
-        if (out != null) {
-            audio = null;
-            // this may fail, so ensure object state is set up before
-            // calling this method.
-            out.close();
-            try {
-                bitstream.close();
-            } catch (BitstreamException ex) {
-                ex.printStackTrace();
+            if (!blocking && queue.size() == 0) {
+                this.waitForQueue();
             }
         }
     }
 
-    protected Header decodeFrame() throws JavaLayerException {
+    private void waitForQueue() {
+        try {
+            synchronized (queue) {
+                System.out.println("WAITING?");
+                queue.wait();
+                System.out.println("WAITING!");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void closeStream(Bitstream bitstream) {
+        try {
+            bitstream.close();
+        } catch (BitstreamException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public synchronized void close() {
+        if (audio != null) {
+            audio.close();
+            audio = null;
+        }
+    }
+
+    protected Header playFrame(Bitstream bitstream) throws JavaLayerException {
         try {
             AudioDevice out = audio;
             if (out == null) {
@@ -114,18 +215,18 @@ public class Player {
         }
     }
 
-    protected Header skipFrame() throws JavaLayerException {
+    protected Header skipFrame(Bitstream bitstream) throws JavaLayerException {
         Header h = bitstream.readFrame();
         bitstream.closeFrame();
         return h;
     }
 
-    public void skipTo(float ms) throws JavaLayerException {
+    public void skipStreamTo(Bitstream stream, float ms) throws JavaLayerException {
         Header h;
         boolean done = false;
         float offset = ms;
         while (offset > 0 && !done) {
-            h = skipFrame();
+            h = skipFrame(stream);
             done = h == null;
             if (!done) {
                 offset -= h.ms_per_frame();
@@ -138,8 +239,10 @@ public class Player {
     }
 
     public void stop() {
-        listener.playbackFinished(this);
-        close();
+        synchronized (queue) {
+            queue.clear();
+        }
+        playing = false;
     }
 
     public void fadeOut() {

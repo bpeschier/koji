@@ -13,6 +13,6 @@ public class RangeDeserializer implements JsonDeserializer<Range<Float>> {
     @Override
     public Range<Float> deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
         JsonArray jsonArray = jsonElement.getAsJsonArray();
-        return new Range<>(jsonArray.get(0).getAsFloat(), jsonArray.get(1).getAsFloat());
+        return new Range<Float>(jsonArray.get(0).getAsFloat(), jsonArray.get(1).getAsFloat());
     }
 }

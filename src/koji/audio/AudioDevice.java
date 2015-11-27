@@ -62,7 +62,11 @@ public class AudioDevice extends AudioDeviceBase {
                 this.source.open(this.fmt);
                 this.source.start();
             }
-        } catch (RuntimeException | LinkageError | LineUnavailableException var3) {
+        } catch (RuntimeException re) {
+            t = re;
+        } catch (LinkageError le) {
+            t = le;
+        } catch (LineUnavailableException var3) {
             t = var3;
         }
 
