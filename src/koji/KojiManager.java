@@ -1,8 +1,12 @@
 package koji;
 
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.editor.actionSystem.EditorActionManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.util.messages.Topic;
 import koji.audio.Queue;
 import koji.listeners.EnabledChangeListener;
@@ -21,17 +25,19 @@ public class KojiManager implements KojiListener {
     public static Topic<EnabledChangeListener> ENABLE_CHANGE = Topic.create("Enabled change", EnabledChangeListener.class);
 
     private boolean enabled = true;
-    private Pack pack;
     private Queue queue;
     private PacksManager packsManager;
 
+    private Project currentProject;
+    private Pack currentPack;
+
     private static KojiManager instance;
+    private boolean errorState = false;
 
     private KojiManager() {
         queue = new Queue();
         packsManager = PacksManager.getInstance();
-
-        pack = packsManager.getPacks().get(0);
+        currentPack = packsManager.getPacks().get(0);
     }
 
     public static KojiManager getInstance() {
@@ -48,17 +54,10 @@ public class KojiManager implements KojiListener {
     }
 
     public void selectedPack(Project project, Pack pack) {
-        this.pack = pack;
-
         setProjectPack(project, pack);
+
         project.getMessageBus().syncPublisher(KojiManager.PACK_CHANGE).packChanged(pack);
-
-        selectedTheme(project, null, getCurrentProjectTheme(project));
-
-    }
-
-    private void update() {
-
+        selectedTheme(project, FileEditorManager.getInstance(project).getSelectedFiles()[0], getCurrentProjectTheme(project));
     }
 
     public List<Pack> getPacks() {
@@ -79,6 +78,15 @@ public class KojiManager implements KojiListener {
         return getProjectPack(project).getTheme(themeId);
     }
 
+    void setCurrentProject(Project project) {
+        boolean same = project == currentProject;
+        currentProject = project;
+        if (!same) {
+            queue.playTheme(getCurrentProjectTheme(project));
+        }
+        currentPack = getProjectPack(project);
+    }
+
     //
     // Events
     //
@@ -88,7 +96,7 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        queue.playTheme(getCurrentProjectTheme(project));
+        setCurrentProject(project);
     }
 
     @Override
@@ -110,7 +118,10 @@ public class KojiManager implements KojiListener {
 
     @Override
     public void currentFileChanged(Project project, VirtualFile newFile, VirtualFile oldFile) {
-
+        if (!enabled) {
+            return;
+        }
+        setCurrentProject(project);
     }
 
     @Override
@@ -122,15 +133,17 @@ public class KojiManager implements KojiListener {
 
         switch (window) {
             case PROJECT_SELECT:
-                queue.playBackground(pack.getMenu());
+                queue.playBackground(currentPack.getMenu());
                 break;
             case EDITOR:
-                queue.resumeBackground();
-                queue.stopForeground();
+                if (!errorState) {
+                    queue.resumeBackground();
+                    queue.stopForeground();
+                }
                 break;
             case PLUGINS:
                 queue.pauseBackground();
-                queue.playForeground(pack.getPlugins());
+                queue.playForeground(currentPack.getPlugins());
                 break;
         }
 
@@ -146,12 +159,14 @@ public class KojiManager implements KojiListener {
     @Override
     public void problemsAppeared(Project project, VirtualFile file) {
         queue.playForeground(getCurrentProjectTheme(project).getWarning());
+        errorState = true;
     }
 
     @Override
     public void problemsDisappeared(Project project, VirtualFile file) {
         queue.resumeBackground();
         queue.stopForeground();
+        errorState = false;
     }
 
     public boolean isPaused() {
@@ -175,7 +190,7 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        queue.playBlocking(pack.getExit());
+        queue.playBlocking(getProjectPack(currentProject).getExit());
     }
 
     public enum Window {

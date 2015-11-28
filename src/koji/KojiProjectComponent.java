@@ -1,14 +1,9 @@
 package koji;
 
-import com.intellij.openapi.compiler.CompilationStatusListener;
-import com.intellij.openapi.compiler.CompileContext;
-import com.intellij.openapi.compiler.CompilerManager;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
@@ -18,7 +13,7 @@ import koji.ui.PackStatusbarWidget;
 import koji.ui.ThemeStatusbarWidget;
 import org.jetbrains.annotations.NotNull;
 
-public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener implements ProjectComponent, CompilationStatusListener, FileEditorManagerListener {
+public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener implements ProjectComponent, FileEditorManagerListener {
 
     private Project project;
     private KojiManager manager;
@@ -48,8 +43,6 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
 
         manager.projectOpened(project);
 
-        CompilerManager.getInstance(project).addCompilationStatusListener(this);
-
         problemSolver = WolfTheProblemSolver.getInstance(project);
         problemSolver.addProblemListener(this);
 
@@ -62,7 +55,6 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
     public void projectClosed() {
         manager.projectClosed(project);
 
-        CompilerManager.getInstance(project).removeCompilationStatusListener(this);
         problemSolver.removeProblemListener(this);
         problemSolver = null;
     }
@@ -90,16 +82,6 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
     @Override
     public void problemsDisappeared(@NotNull VirtualFile file) {
         manager.problemsDisappeared(project, file);
-    }
-
-    @Override
-    public void compilationFinished(boolean aborted, int errors, int warnings, CompileContext compileContext) {
-        manager.compilationDone(compileContext.getProject(), errors, warnings);
-    }
-
-    @Override
-    public void fileGenerated(String s, String s1) {
-
     }
 
     @Override
