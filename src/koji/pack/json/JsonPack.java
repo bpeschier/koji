@@ -87,4 +87,8 @@ public class JsonPack implements Pack {
         return IconLoader.findIcon(icon);
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
 }

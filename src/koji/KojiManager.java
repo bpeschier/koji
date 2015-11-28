@@ -158,15 +158,15 @@ public class KojiManager implements KojiListener {
 
     @Override
     public void problemsAppeared(Project project, VirtualFile file) {
-        queue.playForeground(getCurrentProjectTheme(project).getWarning());
         errorState = true;
+        queue.playForeground(getCurrentProjectTheme(project).getWarning());
     }
 
     @Override
     public void problemsDisappeared(Project project, VirtualFile file) {
+        errorState = false;
         queue.resumeBackground();
         queue.stopForeground();
-        errorState = false;
     }
 
     public boolean isPaused() {
@@ -190,7 +190,7 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        queue.playBlocking(getProjectPack(currentProject).getExit());
+        queue.playBlocking(currentPack.getExit());
     }
 
     public enum Window {
