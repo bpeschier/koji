@@ -25,16 +25,18 @@ public class Player {
 
     private boolean playing = false;
     private float left = 0;
-    private boolean fadeout = false;
+    private boolean mute = false;
 
 
+    private String name;
     private Listener listener;
 
-    public Player() {
-        this(false);
+    public Player(String name) {
+        this(name, false);
     }
 
-    public Player(boolean blocking) {
+    public Player(String name, boolean blocking) {
+        this.name = name;
         this.blocking = blocking;
 
         if (!blocking) {
@@ -65,7 +67,7 @@ public class Player {
     }
 
     public void play(InputStream stream, float from, float to) throws JavaLayerException {
-        fadeout = false;
+        mute = false;
         Bitstream bitstream = new Bitstream(stream);
         if (from > 0) {
             skipStreamTo(bitstream, from);
@@ -112,11 +114,10 @@ public class Player {
 
         while (queue.size() > 0) {
             Header h;
-            audio = new AudioDevice();
+            audio = new AudioDevice(name);
             audio.open(decoder = new Decoder());
-            if (fadeout) {
-                audio.setVolume(0);
-            }
+
+            audio.setVolume((mute) ? 0 : 1);
 
             Iterator<Map.Entry<Bitstream, Float>> entryIterator = queue.entrySet().iterator();
             Map.Entry<Bitstream, Float> entry = entryIterator.next();
@@ -255,21 +256,26 @@ public class Player {
         playing = false;
     }
 
-    public void fadeOut(boolean stop) {
-        fadeout = true;
-        if (stop) {
-            synchronized (queue) {
-                queue.clear();
-            }
-            left = 1000;
+    public void mute() {
+        mute = true;
+        if (audio != null) {
+            audio.shiftVolumeTo(0);
         }
+    }
+
+    public void fadeOut() {
+        mute = true;
+        synchronized (queue) {
+            queue.clear();
+        }
+        left = 1000;
         if (audio != null) {
             audio.shiftVolumeTo(0);
         }
     }
 
     public void fadeIn() {
-        fadeout = false;
+        mute = false;
         if (audio != null) {
             audio.shiftVolumeTo(1);
         }

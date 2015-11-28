@@ -8,10 +8,13 @@ public interface KojiListener {
 
     void projectClosed(Project project);
 
-    void projectSwitched(Project from, Project to);
-
     void windowFocused(KojiManager.Window window);
 
+    void compilationDone(Project project, int errors, int warnings);
+
+    void problemsAppeared(Project project);
+
+    void problemsDisappeared(Project project);
 
     void applicationExiting();
 }

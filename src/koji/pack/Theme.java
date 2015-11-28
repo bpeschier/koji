@@ -12,5 +12,6 @@ public interface Theme {
 
     AudioFile getIntro();
     AudioFile getMain();
+    AudioFile getWarning();
 
 }

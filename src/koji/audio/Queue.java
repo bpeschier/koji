@@ -23,10 +23,10 @@ public class Queue implements Player.Listener {
     private final Map<Player, LinkedList<AudioFile>> playerQueues = new HashMap<Player, LinkedList<AudioFile>>();
 
     public Queue() {
-        backgroundPlayer = new Player();
-        foregroundPlayer = new Player();
-        instantPlayer = new Player();
-        blockingPlayer = new Player(true);
+        backgroundPlayer = new Player("background");
+        foregroundPlayer = new Player("foreground");
+        instantPlayer = new Player("instant");
+        blockingPlayer = new Player("blocking", true);
 
         backgroundPlayer.setListener(this);
         foregroundPlayer.setListener(this);
@@ -116,7 +116,7 @@ public class Queue implements Player.Listener {
     public void playForeground(AudioFile audioFile) {
         if (playerQueues.get(foregroundPlayer).peek() != audioFile) {
             foregroundPlayer.fadeIn();
-            backgroundPlayer.fadeOut(false);
+            backgroundPlayer.mute();
             play(foregroundPlayer, audioFile);
         }
     }
@@ -130,7 +130,7 @@ public class Queue implements Player.Listener {
     }
 
     public void pauseBackground() {
-        backgroundPlayer.fadeOut(false);
+        backgroundPlayer.mute();
     }
 
     public void resumeBackground() {
@@ -144,7 +144,7 @@ public class Queue implements Player.Listener {
                 queue.clear();
             }
         }
-        foregroundPlayer.fadeOut(true);
+        foregroundPlayer.fadeOut();
     }
 
     private void stop(Player player) {
@@ -154,7 +154,7 @@ public class Queue implements Player.Listener {
                 queue.clear();
             }
         }
-        player.fadeOut(true);
+        player.fadeOut();
     }
 
     public void playBlocking(AudioFile audioFile) {

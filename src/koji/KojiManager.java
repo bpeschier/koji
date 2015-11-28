@@ -19,6 +19,7 @@ public class KojiManager implements KojiListener {
     private Pack pack;
     private Queue queue;
     private PacksManager packsManager;
+    private boolean errorState = false;
 
     private static KojiManager instance;
 
@@ -83,14 +84,6 @@ public class KojiManager implements KojiListener {
     }
 
     @Override
-    public void projectSwitched(Project from, Project to) {
-        if (!enabled) {
-            return;
-        }
-        projectOpened(to);
-    }
-
-    @Override
     public void windowFocused(Window window) {
         if (!enabled) {
             return;
@@ -102,8 +95,10 @@ public class KojiManager implements KojiListener {
                 queue.playBackground(pack.getMenu());
                 break;
             case EDITOR:
-                queue.resumeBackground();
-                queue.stopForeground();
+                if (!errorState) {
+                    queue.resumeBackground();
+                    queue.stopForeground();
+                }
                 break;
             case PLUGINS:
                 queue.pauseBackground();
@@ -111,6 +106,33 @@ public class KojiManager implements KojiListener {
                 break;
         }
 
+    }
+
+    @Override
+    public void compilationDone(Project project, int errors, int warnings) {
+        if (!enabled) {
+            return;
+        }
+        if (!errorState && errors > 0) {
+            errorState = true;
+            queue.playForeground(getCurrentProjectTheme(project).getWarning());
+        } else if (errorState && errors == 0) {
+            errorState = false;
+            queue.stopForeground();
+        }
+    }
+
+    @Override
+    public void problemsAppeared(Project project) {
+        errorState = true;
+        queue.playForeground(getCurrentProjectTheme(project).getWarning());
+    }
+
+    @Override
+    public void problemsDisappeared(Project project) {
+        errorState = false;
+        queue.resumeBackground();
+        queue.stopForeground();
     }
 
     public boolean isPaused() {

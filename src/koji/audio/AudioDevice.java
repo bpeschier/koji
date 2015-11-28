@@ -5,41 +5,41 @@ import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.AudioDeviceBase;
 
 import javax.sound.sampled.*;
+import java.util.logging.Logger;
 
 public class AudioDevice extends AudioDeviceBase implements Runnable {
+    private static final Logger logger = Logger.getLogger(AudioDevice.class.getName());
+
     private SourceDataLine source = null;
     private AudioFormat fmt = null;
     private byte[] byteBuf = new byte[4096];
+    private String name;
 
     float currDB = 0F;
     float targetDB = 0F;
-    float fadePerStep = 0.2F;   // .1 works for applets, 1 is okay for apps
     boolean fading = false;
+
+    public AudioDevice(String name) {
+        this.name = name;
+    }
 
     public void run() {
         FloatControl gainControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
         fading = true;   // prevent running twice on same sound
-        if (currDB > targetDB) {
-            while (currDB > targetDB) {
-                currDB -= fadePerStep;
-                gainControl.setValue(currDB);
-                try {
-                    Thread.sleep(10);
-                } catch (Exception ignored) {
-                }
-            }
-        } else if (currDB < targetDB) {
-            while (currDB < targetDB) {
-                currDB += fadePerStep;
-                gainControl.setValue(currDB);
-                try {
-                    Thread.sleep(10);
-                } catch (Exception ignored) {
-                }
+        int steps = 100;
+        float diffStep = (targetDB - currDB) / (float) steps;
+        logger.fine("FADING " + name + ": " + targetDB + "; " + currDB + " : " + diffStep);
+        for (int i = 0; i < steps; i++) {
+            currDB += diffStep;
+            gainControl.setValue(currDB);
+            try {
+                Thread.sleep(10);
+            } catch (Exception ignored) {
+                ignored.printStackTrace();
             }
         }
+        logger.fine("FADED " + name + ": " + targetDB + "; " + currDB + " : " + diffStep);
         fading = false;
-        currDB = targetDB;  // now sound is at this volume level
     }
 
     public void setVolume(double value) {
@@ -50,6 +50,8 @@ public class AudioDevice extends AudioDeviceBase implements Runnable {
             try {
                 FloatControl gainControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
                 gainControl.setValue(targetDB);
+                currDB = targetDB;
+                logger.fine("SET" + name + ": " + targetDB + "; " + currDB);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
