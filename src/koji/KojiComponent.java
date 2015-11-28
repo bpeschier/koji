@@ -14,6 +14,7 @@ public class KojiComponent implements ApplicationComponent {
     @Override
     public void initComponent() {
         PropertiesComponent.getInstance().setValues("kojiPackPaths", new String[]{
+                "file:///Users/bpeschier/Downloads/koji/Mario64.koji/",
                 "file:///Users/bpeschier/Downloads/koji/WindWaker.koji/"
         });
         packsManager = PacksManager.getInstance();

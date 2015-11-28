@@ -23,12 +23,16 @@
     </extensions>
 
     <actions>
-        <action id="koji.actions.SelectTheme" class="koji.actions.OpenThemePopupAction"
+        <action id="koji.actions.SelectThemeAction" class="koji.actions.OpenThemePopupAction"
                 text="Select a theme">
             <keyboard-shortcut first-keystroke="ctrl meta T" keymap="$default"/>
         </action>
+        <action id="koji.actions.SelectPackAction" class="koji.actions.OpenPackPopupAction"
+                text="Select a pack">
+            <keyboard-shortcut first-keystroke="ctrl meta P" keymap="$default"/>
+        </action>
         <action id="koji.actions.PlayPauseAction" class="koji.actions.PlayPauseAction" text="Play/pause Kōji">
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl meta P"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl meta S"/>
         </action>
     </actions>
 

@@ -1,10 +1,12 @@
 package koji;
 
-import com.intellij.openapi.compiler.CompilationStatusAdapter;
 import com.intellij.openapi.compiler.CompilationStatusListener;
 import com.intellij.openapi.compiler.CompileContext;
 import com.intellij.openapi.compiler.CompilerManager;
 import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
+import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -12,10 +14,11 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.WindowManager;
 import com.intellij.problems.WolfTheProblemSolver;
+import koji.ui.PackStatusbarWidget;
 import koji.ui.ThemeStatusbarWidget;
 import org.jetbrains.annotations.NotNull;
 
-public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener implements ProjectComponent, CompilationStatusListener {
+public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener implements ProjectComponent, CompilationStatusListener, FileEditorManagerListener {
 
     private Project project;
     private KojiManager manager;
@@ -32,9 +35,15 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
         StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
 
         if (statusBar != null) {
-            ThemeStatusbarWidget widget = new ThemeStatusbarWidget(project);
-            statusBar.addWidget(widget, "after " + ThemeStatusbarWidget.class.getName(), project);
-            statusBar.updateWidget(widget.getClass().getName());
+            if (manager.getPacks().size() > 1) {
+                PackStatusbarWidget packStatusbarWidget = new PackStatusbarWidget(project);
+                statusBar.addWidget(packStatusbarWidget, "after " + PackStatusbarWidget.class.getName(), project);
+                statusBar.updateWidget(packStatusbarWidget.getClass().getName());
+            }
+
+            ThemeStatusbarWidget themeStatusbarWidget = new ThemeStatusbarWidget(project);
+            statusBar.addWidget(themeStatusbarWidget, "after " + ThemeStatusbarWidget.class.getName(), project);
+            statusBar.updateWidget(themeStatusbarWidget.getClass().getName());
         }
 
         manager.projectOpened(project);
@@ -43,6 +52,10 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
 
         problemSolver = WolfTheProblemSolver.getInstance(project);
         problemSolver.addProblemListener(this);
+
+        project.getMessageBus().connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this);
+
+
     }
 
     @Override
@@ -71,18 +84,12 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
 
     @Override
     public void problemsAppeared(@NotNull VirtualFile file) {
-        manager.problemsAppeared(project);
+        manager.problemsAppeared(project, file);
     }
 
     @Override
     public void problemsDisappeared(@NotNull VirtualFile file) {
-        boolean errors = false;
-        for (Module m : ModuleManager.getInstance(project).getModules()) {
-            errors = errors || problemSolver.hasProblemFilesBeneath(m);
-        }
-        if (!errors) {
-            manager.problemsDisappeared(project);
-        }
+        manager.problemsDisappeared(project, file);
     }
 
     @Override
@@ -93,5 +100,20 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
     @Override
     public void fileGenerated(String s, String s1) {
 
+    }
+
+    @Override
+    public void fileOpened(@NotNull FileEditorManager fileEditorManager, @NotNull VirtualFile virtualFile) {
+        manager.fileOpened(fileEditorManager.getProject(), virtualFile);
+    }
+
+    @Override
+    public void fileClosed(@NotNull FileEditorManager fileEditorManager, @NotNull VirtualFile virtualFile) {
+        manager.fileClosed(fileEditorManager.getProject(), virtualFile);
+    }
+
+    @Override
+    public void selectionChanged(@NotNull FileEditorManagerEvent event) {
+        manager.currentFileChanged(event.getManager().getProject(), event.getNewFile(), event.getOldFile());
     }
 }
