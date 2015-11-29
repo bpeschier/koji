@@ -47,4 +47,8 @@ public class PacksManager {
         // TODO: 0? Really?
         return packs.get(0);
     }
+
+    public boolean isEnabled(Pack pack) {
+        return true;
+    }
 }

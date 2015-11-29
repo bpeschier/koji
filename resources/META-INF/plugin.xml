@@ -17,7 +17,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
-        <applicationConfigurable instance="koji.ui.KojiConfigurable"/>
+        <applicationConfigurable instance="koji.KojiConfigurable"/>
     </extensions>
 
     <actions>
