@@ -1,14 +1,11 @@
 package koji;
 
 import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.openapi.editor.actionSystem.EditorActionManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.util.messages.Topic;
-import koji.audio.Queue;
+import koji.audio.Channel;
 import koji.listeners.EnabledChangeListener;
 import koji.listeners.PackChangeListener;
 import koji.listeners.ThemeChangeListener;
@@ -25,7 +22,6 @@ public class KojiManager implements KojiListener {
     public static Topic<EnabledChangeListener> ENABLE_CHANGE = Topic.create("Enabled change", EnabledChangeListener.class);
 
     private boolean enabled = true;
-    private Queue queue;
     private PacksManager packsManager;
 
     private Project currentProject;
@@ -34,10 +30,15 @@ public class KojiManager implements KojiListener {
     private static KojiManager instance;
     private boolean errorState = false;
 
+    private Channel backgroundChannel;
+    private Channel foregroundChannel;
+
     private KojiManager() {
-        queue = new Queue();
         packsManager = PacksManager.getInstance();
         currentPack = packsManager.getPacks().get(0);
+
+        backgroundChannel = new Channel("background");
+        foregroundChannel = new Channel("foreground");
     }
 
     public static KojiManager getInstance() {
@@ -48,7 +49,8 @@ public class KojiManager implements KojiListener {
     }
 
     public void selectedTheme(Project project, VirtualFile file, Theme theme) {
-        queue.playTheme(theme);
+        backgroundChannel.play(theme.getMain());
+
         PropertiesComponent.getInstance(project).setValue("kojiCurrentTheme", theme.getName());
         project.getMessageBus().syncPublisher(KojiManager.THEME_CHANGE).themeChanged(theme);
     }
@@ -82,7 +84,7 @@ public class KojiManager implements KojiListener {
         boolean same = project == currentProject;
         currentProject = project;
         if (!same) {
-            queue.playTheme(getCurrentProjectTheme(project));
+            backgroundChannel.play(getCurrentProjectTheme(project).getMain());
         }
         currentPack = getProjectPack(project);
     }
@@ -133,17 +135,17 @@ public class KojiManager implements KojiListener {
 
         switch (window) {
             case PROJECT_SELECT:
-                queue.playBackground(currentPack.getMenu());
+                backgroundChannel.play(currentPack.getMenu());
                 break;
             case EDITOR:
                 if (!errorState) {
-                    queue.resumeBackground();
-                    queue.stopForeground();
+                    backgroundChannel.fadeIn();
+                    foregroundChannel.fadeOut();
                 }
                 break;
             case PLUGINS:
-                queue.pauseBackground();
-                queue.playForeground(currentPack.getPlugins());
+                backgroundChannel.fadeOut();
+                foregroundChannel.play(currentPack.getPlugins());
                 break;
         }
 
@@ -159,14 +161,15 @@ public class KojiManager implements KojiListener {
     @Override
     public void problemsAppeared(Project project, VirtualFile file) {
         errorState = true;
-        queue.playForeground(getCurrentProjectTheme(project).getWarning());
+        backgroundChannel.fadeOut();
+        foregroundChannel.play(getCurrentProjectTheme(project).getWarning());
     }
 
     @Override
     public void problemsDisappeared(Project project, VirtualFile file) {
         errorState = false;
-        queue.resumeBackground();
-        queue.stopForeground();
+        backgroundChannel.fadeIn();
+        foregroundChannel.fadeOut();
     }
 
     public boolean isPaused() {
@@ -175,13 +178,13 @@ public class KojiManager implements KojiListener {
 
     public void resume(Project project) {
         enabled = true;
-        queue.playTheme(getCurrentProjectTheme(project));
+        backgroundChannel.play(getCurrentProjectTheme(project).getMain());
         project.getMessageBus().syncPublisher(KojiManager.ENABLE_CHANGE).isKojiEnabled(true);
     }
 
     public void pause(Project project) {
         enabled = false;
-        queue.stop();
+//        queue.stop();
         project.getMessageBus().syncPublisher(KojiManager.ENABLE_CHANGE).isKojiEnabled(false);
     }
 
@@ -190,7 +193,7 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        queue.playBlocking(currentPack.getExit());
+//        queue.playBlocking(currentPack.getExit());
     }
 
     public enum Window {
