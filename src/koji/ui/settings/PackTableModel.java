@@ -1,15 +1,13 @@
 package koji.ui.settings;
 
+import com.intellij.ui.BooleanTableCellEditor;
 import com.intellij.ui.BooleanTableCellRenderer;
-import com.intellij.util.ui.table.IconTableCellRenderer;
 import koji.pack.Pack;
 import koji.pack.PacksManager;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,22 +23,6 @@ public class PackTableModel extends AbstractTableModel {
         this.packs = manager.getPacks();
         this.columns = new ArrayList<Column>() {
             {
-                add(new Column<Boolean>() {
-                    @Override
-                    public String getTitle() {
-                        return "Enabled";
-                    }
-
-                    @Override
-                    public Boolean getObject(Pack pack) {
-                        return manager.isEnabled(pack);
-                    }
-
-                    @Override
-                    public TableCellRenderer getTableCellRenderer() {
-                        return new BooleanTableCellRenderer(SwingConstants.CENTER);
-                    }
-                });
                 add(new Column<Icon>() {
                     @Override
                     public String getTitle() {
@@ -54,13 +36,17 @@ public class PackTableModel extends AbstractTableModel {
 
                     @Override
                     public TableCellRenderer getTableCellRenderer() {
-                        return new IconTableCellRenderer<Icon>() {
-                            @Nullable
-                            @Override
-                            protected Icon getIcon(@NotNull Icon icon, JTable jTable, int i) {
-                                return icon;
-                            }
-                        };
+                        return new PackTable.PackIconCellRenderer();
+                    }
+
+                    @Override
+                    public TableCellEditor getEditor() {
+                        return null;
+                    }
+
+                    @Override
+                    public Class<Icon> getObjectType() {
+                        return Icon.class;
                     }
                 });
                 add(new Column<Pack>() {
@@ -76,7 +62,43 @@ public class PackTableModel extends AbstractTableModel {
 
                     @Override
                     public TableCellRenderer getTableCellRenderer() {
-                        return new DefaultTableCellRenderer();
+                        return new PackTable.PackTableCellRenderer();
+                    }
+
+                    @Override
+                    public TableCellEditor getEditor() {
+                        return null;
+                    }
+
+                    @Override
+                    public Class<Pack> getObjectType() {
+                        return Pack.class;
+                    }
+                });
+                add(new Column<Boolean>() {
+                    @Override
+                    public String getTitle() {
+                        return "Enabled";
+                    }
+
+                    @Override
+                    public Boolean getObject(Pack pack) {
+                        return manager.isEnabled(pack);
+                    }
+
+                    @Override
+                    public TableCellRenderer getTableCellRenderer() {
+                        return new BooleanTableCellRenderer(SwingConstants.CENTER);
+                    }
+
+                    @Override
+                    public TableCellEditor getEditor() {
+                        return new BooleanTableCellEditor();
+                    }
+
+                    @Override
+                    public Class<Boolean> getObjectType() {
+                        return Boolean.class;
                     }
                 });
             }
@@ -98,6 +120,12 @@ public class PackTableModel extends AbstractTableModel {
         return columns.size();
     }
 
+
+    @Override
+    public boolean isCellEditable(int rowIndex, int columnIndex) {
+        return columns.get(columnIndex).getEditor() != null;
+    }
+
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Column<?> column = columns.get(columnIndex);
@@ -115,5 +143,10 @@ public class PackTableModel extends AbstractTableModel {
         T getObject(Pack pack);
 
         TableCellRenderer getTableCellRenderer();
+
+        TableCellEditor getEditor();
+
+        Class<T> getObjectType();
+
     }
 }
