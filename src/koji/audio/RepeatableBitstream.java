@@ -15,12 +15,13 @@ public class RepeatableBitstream {
     private boolean repeating = false;
     private float fromMs = Float.MAX_VALUE;
     private float toMs = Float.MAX_VALUE;
+    private RepeatableBitstream introRepeatableBitstream;
 
     private byte[] byteBuf = new byte[4096];
 
 
-    public RepeatableBitstream(AudioFile audioFile, Decoder decoder) {
-        this.decoder = decoder;
+    public RepeatableBitstream(AudioFile audioFile) {
+        this.decoder = new Decoder();
         if (audioFile.isRepeatable()) {
             fromMs = audioFile.getRepeatRange().getFrom();
             toMs = audioFile.getRepeatRange().getTo();
@@ -29,18 +30,39 @@ public class RepeatableBitstream {
         inputStream = audioFile.getInputStream();
         currentBitstream = new Bitstream(inputStream);
 
+        if (audioFile.getIntro() != null) {
+            introRepeatableBitstream = new RepeatableBitstream(audioFile.getIntro());
+        }
+
     }
 
     public void close() throws BitstreamException {
+        if (introRepeatableBitstream != null) {
+            introRepeatableBitstream.close();
+        }
         currentBitstream.close();
     }
 
     @SuppressWarnings("UnusedParameters")
     public void closeFrame(Header h) {
-        currentBitstream.closeFrame();
+        if (introRepeatableBitstream != null) {
+            introRepeatableBitstream.closeFrame(h);
+        } else {
+            currentBitstream.closeFrame();
+        }
     }
 
     public Header readHeader() throws BitstreamException, IOException {
+        if (introRepeatableBitstream != null) {
+            Header header = introRepeatableBitstream.readHeader();
+            if (header == null) {
+                introRepeatableBitstream.close();
+                introRepeatableBitstream = null;
+            } else {
+                return header;
+            }
+        }
+
         Header header = currentBitstream.readFrame();
         if (header != null) {
             currentMs += header.ms_per_frame();
@@ -58,6 +80,9 @@ public class RepeatableBitstream {
     }
 
     public byte[] readFrame(Header header) {
+        if (introRepeatableBitstream != null) {
+            return introRepeatableBitstream.readFrame(header);
+        }
 
         SampleBuffer output;
         try {

@@ -57,7 +57,7 @@ public class Channel implements Player.Listener {
     public synchronized void play(AudioFile audioFile) {
         stop();
 
-        currentPlayer = new Player(bufferLine, new RepeatableBitstream(audioFile, new Decoder()));
+        currentPlayer = new Player(bufferLine, new RepeatableBitstream(audioFile));
         SourceDataLine newBuffer = mainLine;
         mainLine = bufferLine;
         bufferLine = newBuffer;

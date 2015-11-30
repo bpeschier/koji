@@ -16,6 +16,13 @@ public class JsonAudioFile implements AudioFile {
     private Range<Float> repeat;
     @SuppressWarnings("unused")
     private boolean repeatable;
+    @SuppressWarnings("unused")
+    private AudioFile intro;
+
+    @Override
+    public AudioFile getIntro() {
+        return intro;
+    }
 
     @Override
     public InputStream getInputStream() {
