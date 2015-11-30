@@ -5,6 +5,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.FileAttribute;
+import com.intellij.problems.WolfTheProblemSolver;
 import com.intellij.util.io.IOUtil;
 import com.intellij.util.messages.Topic;
 import koji.audio.Channel;
@@ -22,11 +23,9 @@ public class KojiManager implements KojiListener {
 
     public static Topic<KojiChangeListener> CHANGES = Topic.create("Kōji change", KojiChangeListener.class);
 
-    private boolean enabled = true;
     private PacksManager packsManager;
 
     private static KojiManager instance;
-    private boolean errorState = false;
 
     private Channel backgroundChannel;
     private Channel foregroundChannel;
@@ -126,6 +125,23 @@ public class KojiManager implements KojiListener {
     public void setTheme(Project project, VirtualFile virtualFile, Theme theme) {
         // TODO
         setTheme(project, theme);
+        handleVirtualFile(project, virtualFile);
+    }
+
+    void handleVirtualFile(Project project, VirtualFile virtualFile) {
+        backgroundChannel.play(getTheme(project, virtualFile).getMain());
+        if (hasErrors(project, virtualFile)) {
+            backgroundChannel.fadeOut();
+            foregroundChannel.play(getTheme(project).getWarning());
+        } else {
+            backgroundChannel.fadeIn();
+            foregroundChannel.stop();
+        }
+
+    }
+
+    boolean hasErrors(Project project, VirtualFile virtualFile) {
+        return WolfTheProblemSolver.getInstance(project).isProblemFile(virtualFile);
     }
 
 
@@ -135,16 +151,10 @@ public class KojiManager implements KojiListener {
 
     @Override
     public void projectOpened(Project project) {
-        if (!enabled) {
-            return;
-        }
     }
 
     @Override
     public void projectClosed(Project project) {
-        if (!enabled) {
-            return;
-        }
     }
 
     @Override
@@ -159,18 +169,11 @@ public class KojiManager implements KojiListener {
 
     @Override
     public void currentFileChanged(Project project, VirtualFile newFile, VirtualFile oldFile) {
-        if (!enabled) {
-            return;
-        }
-        System.out.println("New file: " + newFile);
-        backgroundChannel.play(getTheme(project, newFile).getMain());
+        handleVirtualFile(project, newFile);
     }
 
     @Override
     public void windowFocused(Window window) {
-        if (!enabled) {
-            return;
-        }
         System.out.println("Focused on " + window);
 
         switch (window) {
@@ -178,10 +181,7 @@ public class KojiManager implements KojiListener {
                 // TODO
                 break;
             case EDITOR:
-                if (!errorState) {
-                    backgroundChannel.fadeIn();
-                    foregroundChannel.fadeOut();
-                }
+                // TODO
                 break;
             case PLUGINS:
                 // TODO
@@ -192,46 +192,34 @@ public class KojiManager implements KojiListener {
 
     @Override
     public void compilationDone(Project project, int errors, int warnings) {
-        if (!enabled) {
-            return;
-        }
     }
 
     @Override
     public void problemsAppeared(Project project, VirtualFile file) {
-        errorState = true;
-        backgroundChannel.fadeOut();
-        foregroundChannel.play(getTheme(project).getWarning());
+        handleVirtualFile(project, file);
     }
 
     @Override
     public void problemsDisappeared(Project project, VirtualFile file) {
-        errorState = false;
-        backgroundChannel.fadeIn();
-        foregroundChannel.stop();
+        handleVirtualFile(project, file);
     }
 
     public boolean isPaused() {
-        return !enabled;
+        return false;
     }
 
     public void resume(Project project) {
-        enabled = true;
-        backgroundChannel.play(getTheme(project).getMain());
+        // TODO
         project.getMessageBus().syncPublisher(KojiManager.CHANGES).isKojiEnabled(true);
     }
 
     public void pause(Project project) {
-        enabled = false;
-//        queue.stop();
+        // TODO
         project.getMessageBus().syncPublisher(KojiManager.CHANGES).isKojiEnabled(false);
     }
 
     @Override
     public void applicationExiting() {
-        if (!enabled) {
-            return;
-        }
 //        queue.playBlocking(currentPack.getExit());
     }
 
