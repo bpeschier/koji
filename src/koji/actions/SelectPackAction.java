@@ -2,6 +2,7 @@ package koji.actions;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import koji.KojiManager;
 import koji.pack.Pack;
 import koji.pack.Theme;
@@ -18,6 +19,6 @@ public class SelectPackAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        KojiManager.getInstance().selectedPack(anActionEvent.getProject(), pack);
+        KojiManager.getInstance().selectedPack(anActionEvent.getProject(), anActionEvent.getData(PlatformDataKeys.VIRTUAL_FILE), pack);
     }
 }

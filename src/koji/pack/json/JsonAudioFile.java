@@ -51,4 +51,9 @@ public class JsonAudioFile implements AudioFile {
     public String toString() {
         return "<" + new File(path.getFile()).getName() + " / " + repeatable + ">";
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return (obj instanceof JsonAudioFile) && ((JsonAudioFile) obj).path.equals(path);
+    }
 }

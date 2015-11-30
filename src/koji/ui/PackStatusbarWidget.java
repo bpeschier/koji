@@ -3,8 +3,11 @@ package koji.ui;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ListPopup;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.WindowManager;
@@ -68,24 +71,22 @@ public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarW
         if (project == null) {
             return null;
         }
-        Pack pack = manager.getProjectPack(project);
-        if (pack == null) {
-            return null;
-        }
 
-        updatePopupGroup(project, pack);
+        updatePopupGroup();
 
         return new PopupFactoryImpl.ActionGroupPopup("Packs", popupGroup, SimpleDataContext.getProjectContext(project), false, false, false, true, null, -1,
                 null, null);
 
     }
 
-    private void updatePopupGroup(Project project, Pack pack) {
+    private void updatePopupGroup() {
+        VirtualFile currentFile = getVirtualFile();
+        Pack currentPack = (currentFile != null) ? manager.getPack(getProject(), currentFile) : manager.getPack(getProject());
 
         popupGroup = new DefaultActionGroup(null, false);
 
         for (Pack p : manager.getPacks()) {
-            if (!p.getId().equals(pack.getId())) {
+            if (!p.getId().equals(currentPack.getId())) {
                 popupGroup.add(new SelectPackAction(p));
             }
         }
@@ -95,7 +96,8 @@ public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarW
     @Nullable
     @Override
     public String getSelectedValue() {
-        return manager.getProjectPack(getProject()).getName();
+        VirtualFile currentFile = getVirtualFile();
+        return (currentFile == null) ? manager.getPack(getProject()).getName() : manager.getPack(getProject(), getVirtualFile()).getName();
     }
 
     @NotNull
@@ -122,8 +124,13 @@ public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarW
     }
 
     private void update() {
-        updatePopupGroup(getProject(), manager.getProjectPack(getProject()));
+        updatePopupGroup();
         myStatusBar.updateWidget(ID());
+    }
+
+    protected VirtualFile getVirtualFile() {
+        Document document = (getEditor() != null) ? getEditor().getDocument() : null;
+        return (document != null) ? FileDocumentManager.getInstance().getFile(document) : null;
     }
 
     @Override

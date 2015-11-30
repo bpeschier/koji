@@ -4,13 +4,18 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.newvfs.FileAttribute;
+import com.intellij.util.io.IOUtil;
 import com.intellij.util.messages.Topic;
 import koji.audio.Channel;
 import koji.listeners.KojiChangeListener;
 import koji.pack.Pack;
 import koji.pack.PacksManager;
 import koji.pack.Theme;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.List;
 
 public class KojiManager implements KojiListener {
@@ -20,18 +25,16 @@ public class KojiManager implements KojiListener {
     private boolean enabled = true;
     private PacksManager packsManager;
 
-    private Project currentProject;
-    private Pack currentPack;
-
     private static KojiManager instance;
     private boolean errorState = false;
 
     private Channel backgroundChannel;
     private Channel foregroundChannel;
 
+    private static final FileAttribute THEME = new FileAttribute("kojiTheme");
+
     private KojiManager() {
         packsManager = PacksManager.getInstance();
-        currentPack = packsManager.getPacks().get(0);
 
         backgroundChannel = new Channel("background");
         foregroundChannel = new Channel("foreground");
@@ -45,45 +48,86 @@ public class KojiManager implements KojiListener {
     }
 
     public void selectedTheme(Project project, VirtualFile file, Theme theme) {
+        setTheme(project, file, theme);
+
         backgroundChannel.play(theme.getMain());
 
-        PropertiesComponent.getInstance(project).setValue("kojiCurrentTheme", theme.getName());
         project.getMessageBus().syncPublisher(KojiManager.CHANGES).themeChanged(theme);
     }
 
-    public void selectedPack(Project project, Pack pack) {
-        setProjectPack(project, pack);
+    public void selectedPack(Project project, VirtualFile virtualFile, Pack pack) {
+        setPack(project, virtualFile, pack);
 
         project.getMessageBus().syncPublisher(KojiManager.CHANGES).packChanged(pack);
-        selectedTheme(project, FileEditorManager.getInstance(project).getSelectedFiles()[0], getCurrentProjectTheme(project));
+        selectedTheme(project, FileEditorManager.getInstance(project).getSelectedFiles()[0], getTheme(project));
     }
 
     public List<Pack> getPacks() {
         return packsManager.getPacks();
     }
 
-    public Pack getProjectPack(Project project) {
+
+    public Pack getPack(Project project) {
         String packId = PropertiesComponent.getInstance(project).getValue("kojiPack");
         return packsManager.getPack(packId);
     }
 
-    public void setProjectPack(Project project, Pack pack) {
+    public Pack getPack(Project project, @NotNull VirtualFile virtualFile) {
+        Pack pack = null;
+        DataInputStream dis = THEME.readAttribute(virtualFile);
+        if (dis != null) {
+            try {
+                String[] ids = IOUtil.readString(dis).split(":");
+                pack = packsManager.getPack(ids[0]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        // Fallback
+        return (pack != null) ? pack : getPack(project);
+    }
+
+    public void setPack(Project project, Pack pack) {
         PropertiesComponent.getInstance(project).setValue("kojiPack", pack.getId());
     }
 
-    public Theme getCurrentProjectTheme(Project project) {
-        String themeId = PropertiesComponent.getInstance(project).getValue("kojiCurrentTheme");
-        return getProjectPack(project).getTheme(themeId);
+    public void setPack(Project project, VirtualFile virtualFile, Pack pack) {
+        // TODO
+        setPack(project, pack);
     }
 
-    void setCurrentProject(Project project) {
-        boolean same = project == currentProject;
-        currentProject = project;
-        if (!same) {
-            backgroundChannel.play(getCurrentProjectTheme(project).getMain());
-        }
-        currentPack = getProjectPack(project);
+    public Theme getTheme(Project project) {
+        String themeId = PropertiesComponent.getInstance(project).getValue("kojiTheme");
+        return getPack(project).getTheme(themeId);
     }
+
+    public Theme getTheme(Project project, @NotNull VirtualFile virtualFile) {
+        Theme theme = null;
+
+        DataInputStream dis = THEME.readAttribute(virtualFile);
+        if (dis != null) {
+            try {
+                String[] ids = IOUtil.readString(dis).split(":");
+                Pack pack = packsManager.getPack(ids[0]);
+                theme = pack.getTheme(ids[1]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Fallback
+        return (theme != null) ? theme : getTheme(project);
+    }
+
+    public void setTheme(Project project, Theme theme) {
+        PropertiesComponent.getInstance(project).setValue("kojiTheme", theme.getId());
+    }
+
+    public void setTheme(Project project, VirtualFile virtualFile, Theme theme) {
+        // TODO
+        setTheme(project, theme);
+    }
+
 
     //
     // Events
@@ -94,7 +138,6 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        setCurrentProject(project);
     }
 
     @Override
@@ -119,7 +162,8 @@ public class KojiManager implements KojiListener {
         if (!enabled) {
             return;
         }
-        setCurrentProject(project);
+        System.out.println("New file: " + newFile);
+        backgroundChannel.play(getTheme(project, newFile).getMain());
     }
 
     @Override
@@ -131,7 +175,7 @@ public class KojiManager implements KojiListener {
 
         switch (window) {
             case PROJECT_SELECT:
-                backgroundChannel.play(currentPack.getMenu());
+                // TODO
                 break;
             case EDITOR:
                 if (!errorState) {
@@ -140,8 +184,7 @@ public class KojiManager implements KojiListener {
                 }
                 break;
             case PLUGINS:
-                backgroundChannel.fadeOut();
-                foregroundChannel.play(currentPack.getPlugins());
+                // TODO
                 break;
         }
 
@@ -158,7 +201,7 @@ public class KojiManager implements KojiListener {
     public void problemsAppeared(Project project, VirtualFile file) {
         errorState = true;
         backgroundChannel.fadeOut();
-        foregroundChannel.play(getCurrentProjectTheme(project).getWarning());
+        foregroundChannel.play(getTheme(project).getWarning());
     }
 
     @Override
@@ -174,7 +217,7 @@ public class KojiManager implements KojiListener {
 
     public void resume(Project project) {
         enabled = true;
-        backgroundChannel.play(getCurrentProjectTheme(project).getMain());
+        backgroundChannel.play(getTheme(project).getMain());
         project.getMessageBus().syncPublisher(KojiManager.CHANGES).isKojiEnabled(true);
     }
 

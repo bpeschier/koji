@@ -3,8 +3,11 @@ package koji.ui;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ListPopup;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.WindowManager;
@@ -68,24 +71,23 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
         if (project == null) {
             return null;
         }
-        Theme theme = manager.getCurrentProjectTheme(project);
-        if (theme == null) {
-            return null;
-        }
 
-        updatePopupGroup(project, theme);
+        updatePopupGroup();
 
         return new PopupFactoryImpl.ActionGroupPopup("Themes", popupGroup, SimpleDataContext.getProjectContext(project), false, false, false, true, null, -1,
                 null, null);
 
     }
 
-    private void updatePopupGroup(Project project, Theme theme) {
+    private void updatePopupGroup() {
+        VirtualFile currentFile = getVirtualFile();
+        Pack pack = (currentFile != null) ? manager.getPack(getProject(), currentFile) : manager.getPack(getProject());
+        Theme currentTheme = (currentFile == null) ? manager.getTheme(getProject()) : manager.getTheme(getProject(), currentFile);
 
         popupGroup = new DefaultActionGroup(null, false);
 
-        for (Theme t : manager.getProjectPack(project).getThemes()) {
-            if (!t.getId().equals(theme.getId())) {
+        for (Theme t : pack.getThemes()) {
+            if (!t.getId().equals(currentTheme.getId())) {
                 popupGroup.add(new SelectThemeAction(t));
             }
         }
@@ -95,7 +97,8 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
     @Nullable
     @Override
     public String getSelectedValue() {
-        String theme = manager.getCurrentProjectTheme(getProject()).getName();
+        VirtualFile currentFile = getVirtualFile();
+        String theme = (currentFile == null) ? manager.getTheme(getProject()).getName() : manager.getTheme(getProject(), getVirtualFile()).getName();
         return (manager.isPaused()) ? theme + " (Paused)" : theme;
     }
 
@@ -123,18 +126,8 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
     }
 
     private void update() {
-        updatePopupGroup(getProject(), manager.getCurrentProjectTheme(getProject()));
+        updatePopupGroup();
         myStatusBar.updateWidget(ID());
-    }
-
-    @Override
-    public void themeChanged(Theme theme) {
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                update();
-            }
-        });
     }
 
 
@@ -170,6 +163,22 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
         if (popupStep != null)
             popupStep.showInCenterOf(frame);
     }
+
+    protected VirtualFile getVirtualFile() {
+        Document document = (getEditor() != null) ? getEditor().getDocument() : null;
+        return (document != null) ? FileDocumentManager.getInstance().getFile(document) : null;
+    }
+
+    @Override
+    public void themeChanged(Theme theme) {
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                update();
+            }
+        });
+    }
+
 
     @Override
     public void isKojiEnabled(boolean isEnabled) {

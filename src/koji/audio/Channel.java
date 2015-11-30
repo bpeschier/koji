@@ -1,6 +1,5 @@
 package koji.audio;
 
-import javazoom.jl.decoder.Decoder;
 import koji.pack.AudioFile;
 
 import javax.sound.sampled.*;
@@ -16,6 +15,7 @@ public class Channel implements Player.Listener {
     private boolean isMuted;
 
     private Player currentPlayer;
+    private AudioFile currentAudioFile;
 
 
     public Channel(String name) {
@@ -48,14 +48,21 @@ public class Channel implements Player.Listener {
     }
 
     public void stop() {
+        currentAudioFile = null;
         if (currentPlayer != null) {
             doFade(mainLine, 0);
             currentPlayer.stopAfter(FADE_DURATION);
+            currentPlayer = null;
         }
     }
 
     public synchronized void play(AudioFile audioFile) {
+        if (audioFile.equals(currentAudioFile)) {
+            return;
+        }
+
         stop();
+        currentAudioFile = audioFile;
 
         currentPlayer = new Player(bufferLine, new RepeatableBitstream(audioFile));
         SourceDataLine newBuffer = mainLine;
