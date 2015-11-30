@@ -6,9 +6,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.messages.Topic;
 import koji.audio.Channel;
-import koji.listeners.EnabledChangeListener;
-import koji.listeners.PackChangeListener;
-import koji.listeners.ThemeChangeListener;
+import koji.listeners.KojiChangeListener;
 import koji.pack.Pack;
 import koji.pack.PacksManager;
 import koji.pack.Theme;
@@ -17,9 +15,7 @@ import java.util.List;
 
 public class KojiManager implements KojiListener {
 
-    public static Topic<ThemeChangeListener> THEME_CHANGE = Topic.create("Theme change", ThemeChangeListener.class);
-    public static Topic<PackChangeListener> PACK_CHANGE = Topic.create("Pack change", PackChangeListener.class);
-    public static Topic<EnabledChangeListener> ENABLE_CHANGE = Topic.create("Enabled change", EnabledChangeListener.class);
+    public static Topic<KojiChangeListener> CHANGES = Topic.create("Kōji change", KojiChangeListener.class);
 
     private boolean enabled = true;
     private PacksManager packsManager;
@@ -52,13 +48,13 @@ public class KojiManager implements KojiListener {
         backgroundChannel.play(theme.getMain());
 
         PropertiesComponent.getInstance(project).setValue("kojiCurrentTheme", theme.getName());
-        project.getMessageBus().syncPublisher(KojiManager.THEME_CHANGE).themeChanged(theme);
+        project.getMessageBus().syncPublisher(KojiManager.CHANGES).themeChanged(theme);
     }
 
     public void selectedPack(Project project, Pack pack) {
         setProjectPack(project, pack);
 
-        project.getMessageBus().syncPublisher(KojiManager.PACK_CHANGE).packChanged(pack);
+        project.getMessageBus().syncPublisher(KojiManager.CHANGES).packChanged(pack);
         selectedTheme(project, FileEditorManager.getInstance(project).getSelectedFiles()[0], getCurrentProjectTheme(project));
     }
 
@@ -179,13 +175,13 @@ public class KojiManager implements KojiListener {
     public void resume(Project project) {
         enabled = true;
         backgroundChannel.play(getCurrentProjectTheme(project).getMain());
-        project.getMessageBus().syncPublisher(KojiManager.ENABLE_CHANGE).isKojiEnabled(true);
+        project.getMessageBus().syncPublisher(KojiManager.CHANGES).isKojiEnabled(true);
     }
 
     public void pause(Project project) {
         enabled = false;
 //        queue.stop();
-        project.getMessageBus().syncPublisher(KojiManager.ENABLE_CHANGE).isKojiEnabled(false);
+        project.getMessageBus().syncPublisher(KojiManager.CHANGES).isKojiEnabled(false);
     }
 
     @Override

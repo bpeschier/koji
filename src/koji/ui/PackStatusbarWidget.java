@@ -13,8 +13,9 @@ import com.intellij.ui.popup.PopupFactoryImpl;
 import com.intellij.util.Consumer;
 import koji.KojiManager;
 import koji.actions.SelectPackAction;
-import koji.listeners.PackChangeListener;
+import koji.listeners.KojiChangeListener;
 import koji.pack.Pack;
+import koji.pack.Theme;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +24,7 @@ import java.awt.event.MouseEvent;
 
 
 public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarWidget.MultipleTextValuesPresentation,
-        StatusBarWidget.Multiframe, PackChangeListener {
+        StatusBarWidget.Multiframe, KojiChangeListener {
 
     KojiManager manager;
     DefaultActionGroup popupGroup;
@@ -31,7 +32,7 @@ public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarW
     public PackStatusbarWidget(@NotNull Project project) {
         super(project);
         manager = KojiManager.getInstance();
-        project.getMessageBus().connect().subscribe(KojiManager.PACK_CHANGE, this);
+        project.getMessageBus().connect().subscribe(KojiManager.CHANGES, this);
     }
 
     @NotNull
@@ -117,6 +118,11 @@ public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarW
     }
 
     @Override
+    public void isKojiEnabled(boolean isEnabled) {
+
+    }
+
+    @Override
     public void packChanged(Pack pack) {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
@@ -124,6 +130,11 @@ public class PackStatusbarWidget extends EditorBasedWidget implements StatusBarW
                 update();
             }
         });
+    }
+
+    @Override
+    public void themeChanged(Theme theme) {
+
     }
 
 
