@@ -13,6 +13,7 @@ public class Channel implements Player.Listener {
     private String name;
     private SourceDataLine mainLine;
     private SourceDataLine bufferLine;
+    private boolean isMuted;
 
     private Player currentPlayer;
 
@@ -48,7 +49,8 @@ public class Channel implements Player.Listener {
 
     public void stop() {
         if (currentPlayer != null) {
-            currentPlayer.stop();
+            doFade(mainLine, 0);
+            currentPlayer.stopAfter(FADE_DURATION);
         }
     }
 
@@ -60,7 +62,8 @@ public class Channel implements Player.Listener {
         mainLine = bufferLine;
         bufferLine = newBuffer;
 
-        resetVolume();
+        setVolume(1f);
+        setMuted(false);
 
         new Thread(new Runnable() {
             @Override
@@ -70,7 +73,37 @@ public class Channel implements Player.Listener {
         }).start();
     }
 
+    private float getDb(double value) {
+        return (float) (Math.log(value) / Math.log(10.0) * 20.0);
+    }
+
+    private void setVolume(double value) {
+        for (SourceDataLine line : new SourceDataLine[]{mainLine, bufferLine}) {
+            FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+            gainControl.setValue(getDb(value));
+        }
+    }
+
+    public void setMuted(boolean muted) {
+        if (muted && !isMuted) {
+            isMuted = true;
+            doFade(mainLine, 0);
+        } else if (!muted && isMuted) {
+            isMuted = false;
+            doFade(mainLine, 1);
+        }
+    }
+
+    public void fadeIn() {
+        setMuted(false);
+    }
+
+    public void fadeOut() {
+        setMuted(true);
+    }
+
     private void fade(FloatControl control, double to) {
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (control) {
             int steps = FADE_DURATION / FADE_STEP_DURATION;
 
@@ -83,7 +116,6 @@ public class Channel implements Player.Listener {
             for (int i = 0; i < steps; i++) {
                 currDB += diffStep;
                 currDB = (Math.abs(currDB - toDB) < Math.abs(diffStep * 1.5)) ? toDB : currDB;
-//                System.out.println("? " + currDB + ":" + toDB + ":" + diffStep + ":" + Math.abs(currDB - toDB));
                 control.setValue(currDB);
                 try {
                     Thread.sleep(FADE_STEP_DURATION);
@@ -94,43 +126,15 @@ public class Channel implements Player.Listener {
         }
     }
 
-    private float getDb(double value) {
-        return (float) (Math.log(value) / Math.log(10.0) * 20.0);
+    public void doFade(SourceDataLine line, final double to) {
+        final FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                fade(gainControl, to);
+            }
+        }).start();
     }
-
-    private void resetVolume() {
-        for (SourceDataLine line : new SourceDataLine[]{mainLine, bufferLine}) {
-            FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-            gainControl.setValue(getDb(1f));
-        }
-    }
-
-    public void fadeOut() {
-        System.out.println("FADEOUT " + name);
-        for (SourceDataLine line : new SourceDataLine[]{mainLine, bufferLine}) {
-            FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    fade(gainControl, 0);
-                }
-            }).start();
-        }
-    }
-
-    public void fadeIn() {
-        System.out.println("FADEIN " + name);
-        for (SourceDataLine line : new SourceDataLine[]{mainLine, bufferLine}) {
-            FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    fade(gainControl, 1);
-                }
-            }).start();
-        }
-    }
-
 
     @Override
     public void playbackStarted(Player player) {

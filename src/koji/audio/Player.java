@@ -40,6 +40,10 @@ public class Player {
         setPlaying(false);
     }
 
+    public void stopAfter(float ms) {
+        left = ms;
+    }
+
     public void play() {
 
         setPlaying(true);

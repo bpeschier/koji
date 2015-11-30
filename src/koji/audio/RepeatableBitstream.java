@@ -51,6 +51,7 @@ public class RepeatableBitstream {
                 inputStream.reset();
                 toMs -= fromMs;
                 fromMs = 0;
+                currentMs = 0;
             }
         }
         return header;
