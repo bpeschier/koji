@@ -13,10 +13,11 @@ public class KojiComponent implements ApplicationComponent {
 
     @Override
     public void initComponent() {
+        String homeDir = System.getProperty("user.home");
         PropertiesComponent.getInstance().setValues("kojiPackPaths", new String[]{
-                "file:///Users/bpeschier/Downloads/koji/WindWaker.koji/",
-                "file:///Users/bpeschier/Downloads/koji/Mario64.koji/",
-                "file:///Users/bpeschier/Downloads/koji/MonkeyIsland.koji/"
+                String.format("file://%s/Downloads/koji/WindWaker.koji/", homeDir),
+                String.format("file://%s/Downloads/koji/Mario64.koji/", homeDir),
+                String.format("file://%s/Downloads/koji/MonkeyIsland.koji/", homeDir)
         });
         packsManager = PacksManager.getInstance();
         manager = KojiManager.getInstance();
