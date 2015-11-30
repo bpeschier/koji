@@ -208,7 +208,7 @@ public class KojiManager implements KojiListener {
     public void problemsDisappeared(Project project, VirtualFile file) {
         errorState = false;
         backgroundChannel.fadeIn();
-        foregroundChannel.fadeOut();
+        foregroundChannel.stop();
     }
 
     public boolean isPaused() {
