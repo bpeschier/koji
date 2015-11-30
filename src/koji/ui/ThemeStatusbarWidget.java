@@ -11,6 +11,7 @@ import com.intellij.openapi.wm.WindowManager;
 import com.intellij.openapi.wm.impl.status.EditorBasedWidget;
 import com.intellij.ui.popup.PopupFactoryImpl;
 import com.intellij.util.Consumer;
+import com.intellij.util.messages.MessageBusConnection;
 import koji.KojiManager;
 import koji.actions.SelectThemeAction;
 import koji.listeners.KojiChangeListener;
@@ -28,11 +29,19 @@ public class ThemeStatusbarWidget extends EditorBasedWidget implements StatusBar
 
     KojiManager manager;
     DefaultActionGroup popupGroup;
+    MessageBusConnection messageBusConnection;
 
     public ThemeStatusbarWidget(@NotNull Project project) {
         super(project);
         manager = KojiManager.getInstance();
-        project.getMessageBus().connect().subscribe(KojiManager.CHANGES, this);
+        messageBusConnection = project.getMessageBus().connect();
+        messageBusConnection.subscribe(KojiManager.CHANGES, this);
+    }
+
+    @Override
+    public void dispose() {
+        messageBusConnection.disconnect();
+        super.dispose();
     }
 
     @NotNull
