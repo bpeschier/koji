@@ -13,6 +13,10 @@ import koji.ui.PackStatusbarWidget;
 import koji.ui.ThemeStatusbarWidget;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener implements ProjectComponent, FileEditorManagerListener {
 
     private Project project;
@@ -49,6 +53,13 @@ public class KojiProjectComponent extends WolfTheProblemSolver.ProblemListener i
         project.getMessageBus().connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this);
 
 
+        JFrame frame = WindowManager.getInstance().getFrame(project);
+        frame.addWindowFocusListener(new WindowAdapter() {
+            @Override
+            public void windowGainedFocus(WindowEvent e) {
+                manager.projectOpened(project);
+            }
+        });
     }
 
     @Override

@@ -1,10 +1,14 @@
 package koji;
 
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.FileAttribute;
+import com.intellij.openapi.wm.IdeFrame;
 import com.intellij.problems.WolfTheProblemSolver;
 import com.intellij.util.io.IOUtil;
 import com.intellij.util.messages.Topic;
@@ -16,6 +20,7 @@ import koji.pack.Theme;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -151,6 +156,16 @@ public class KojiManager implements KojiListener {
 
     @Override
     public void projectOpened(Project project) {
+        VirtualFile virtualFile = getCurrentVirtualFile(project);
+        if (virtualFile != null) {
+            handleVirtualFile(project, virtualFile);
+        }
+    }
+
+    protected VirtualFile getCurrentVirtualFile(Project project) {
+        Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+        Document document = (editor != null) ? editor.getDocument() : null;
+        return (document != null) ? FileDocumentManager.getInstance().getFile(document) : null;
     }
 
     @Override
